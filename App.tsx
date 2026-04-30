@@ -4,18 +4,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { initDatabase } from './src/database/database';
-import { TodayScreen } from './src/screens/TodayScreen';
+import TodayScreen from './src/screens/TodayScreen';
+import HabitsScreen from './src/screens/HabitsScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 
 
-// ✅ Placeholders inline — sem imports externos
+// Placeholders
 
-const HabitsScreen = () => (
-  <View style={{ flex: 1, backgroundColor: '#0F0F1A', justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ color: '#7C3AED', fontSize: 24, fontWeight: 'bold' }}>Hábitos ✅</Text>
-  </View>
-);
 const DashboardScreen = () => (
   <View style={{ flex: 1, backgroundColor: '#0F0F1A', justifyContent: 'center', alignItems: 'center' }}>
     <Text style={{ color: '#7C3AED', fontSize: 24, fontWeight: 'bold' }}>Dashboard 📊</Text>

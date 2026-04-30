@@ -1,162 +1,190 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet,
-  StatusBar, Animated,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useHabitStore } from '../store/habitStore';
-import { HabitItem } from '../components/habits/HabitItem';
-import { ProgressBar } from '../components/ui/ProgressBar';
 import { formatDisplayDate, getTodayString } from '../utils/dateHelpers';
-import { colors } from '../theme';
+import { Habit } from '../database/repositories/habitRepository';
+import HabitoHojeModal from '../components/habits/HabitoHojeModal';
 
-const FadeInView: React.FC<{ delay?: number; children: React.ReactNode }> = ({
-  delay = 0, children,
-}) => {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(20)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1, duration: 400, delay, useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0, duration: 400, delay, useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
-      {children}
-    </Animated.View>
-  );
+const C = {
+  bg:        '#0F0F1A',
+  surface:   '#1A1A2E',
+  surface2:  '#252538',
+  primary:   '#7C3AED',
+  primaryLt: '#A855F7',
+  success:   '#10B981',
+  text:      '#FFFFFF',
+  textSec:   '#9CA3AF',
+  border:    '#2A2A3E',
 };
 
-export const TodayScreen: React.FC = () => {
+const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
+  water: 'water', fitness: 'barbell', book: 'book',
+  meditation: 'leaf', code: 'code-slash', check: 'checkmark-circle',
+  heart: 'heart', moon: 'moon', run: 'walk',
+};
+
+interface HabitItemProps {
+  habit: Habit;
+  checked: boolean;
+  onToggle: () => void;
+  onPress: () => void;
+}
+
+function HabitItem({ habit, checked, onToggle, onPress }: HabitItemProps) {
+  const iconName = ICON_MAP[habit.icon] ?? 'checkmark-circle';
+
+  return (
+    <TouchableOpacity
+      style={[styles.habitCard, checked && styles.habitCardDone]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      <View style={[styles.iconBox, { backgroundColor: habit.color + '33' }]}>
+        <Ionicons name={iconName} size={22} color={habit.color} />
+      </View>
+
+      <View style={styles.habitInfo}>
+        <Text style={[styles.habitName, checked && styles.habitNameDone]}>
+          {habit.name}
+        </Text>
+        <Text style={styles.habitMeta}>
+          {habit.category} • {habit.frequency === 'daily' ? 'Diário' : 'Semanal'}
+          {habit.goal_value ? ` • Meta: ${habit.goal_value}${habit.goal_unit ?? ''}` : ''}
+        </Text>
+      </View>
+
+      {/* Checkbox — toque direto conclui sem abrir modal */}
+      <TouchableOpacity
+        style={[styles.checkbox, checked && styles.checkboxDone]}
+        onPress={onToggle}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        {checked && <Ionicons name="checkmark" size={16} color="#fff" />}
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+export default function TodayScreen() {
   const {
     habits, loadHabits, loadTodayCheckIns,
     toggleCheckIn, isCheckedToday, getTodayProgress,
   } = useHabitStore();
+
+  const [selectedHabit, setSelected] = useState<Habit | null>(null);
+  const [showLog, setShowLog]        = useState(false);
 
   useEffect(() => {
     loadHabits();
     loadTodayCheckIns();
   }, []);
 
-  const progress = getTodayProgress();
-  const todayLabel = formatDisplayDate(getTodayString());
-  const displayDate = todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1);
-  const commaIndex = displayDate.indexOf(',');
-  const weekday = commaIndex > -1 ? displayDate.slice(0, commaIndex) : displayDate;
-  const rest = commaIndex > -1 ? displayDate.slice(commaIndex) : '';
+  const { completed, total, percentage } = getTodayProgress();
+  const dateLabel = formatDisplayDate(getTodayString());
+
+  const handlePress = (habit: Habit) => {
+    setSelected(habit);
+    setShowLog(true);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Cabeçalho */}
-        <FadeInView delay={0}>
-          <View style={styles.header}>
-            <Text style={styles.dateSmall}>
-              {weekday.toUpperCase()}{rest}
-            </Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.dateLabel}>{dateLabel.toUpperCase()}</Text>
             <Text style={styles.title}>Hoje</Text>
           </View>
-        </FadeInView>
+          <Ionicons name="settings-outline" size={24} color={C.textSec} />
+        </View>
 
         {/* Card de progresso */}
-        <FadeInView delay={100}>
-          <View style={styles.progressCard}>
-            <View style={styles.progressTop}>
-              <View>
-                <Text style={styles.progressPercent}>{progress.percentage}%</Text>
-                <Text style={styles.progressSub}>
-                  {progress.completed} de {progress.total} hábitos
-                </Text>
-              </View>
-              <View style={styles.streakCircle}>
-                <Ionicons name="flame" size={22} color={colors.primary} />
-              </View>
+        <View style={styles.progressCard}>
+          <View style={styles.progressTop}>
+            <View>
+              <Text style={styles.progressPct}>{percentage}%</Text>
+              <Text style={styles.progressSub}>
+                {completed} de {total} hábito{total !== 1 ? 's' : ''}
+              </Text>
             </View>
-            <ProgressBar percentage={progress.percentage} height={8} />
+            <View style={styles.streakBadge}>
+              <Ionicons name="flame" size={22} color={C.primary} />
+            </View>
           </View>
-        </FadeInView>
+          <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: `${percentage}%` as any }]} />
+          </View>
+        </View>
 
         {/* Lista */}
         <Text style={styles.sectionTitle}>Seus Hábitos</Text>
 
         {habits.length === 0 ? (
-          <FadeInView delay={200}>
-            <View style={styles.emptyState}>
-              <Ionicons name="add-circle-outline" size={48} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>Nenhum hábito cadastrado ainda.</Text>
-              <Text style={styles.emptySubtext}>
-                Vá até a aba "Hábitos" para criar o primeiro!
-              </Text>
-            </View>
-          </FadeInView>
+          <View style={styles.emptyState}>
+            <Ionicons name="add-circle-outline" size={48} color={C.primary} />
+            <Text style={styles.emptyTitle}>Nenhum hábito ainda</Text>
+            <Text style={styles.emptyText}>
+              Vá para a aba Hábitos e crie seu primeiro hábito!
+            </Text>
+          </View>
         ) : (
-          habits.map((habit, index) => (
-            <FadeInView key={habit.id} delay={150 + index * 60}>
-              <HabitItem
-                habit={habit}
-                isChecked={isCheckedToday(habit.id)}
-                onToggle={toggleCheckIn}
-              />
-            </FadeInView>
+          habits.map(habit => (
+            <HabitItem
+              key={habit.id}
+              habit={habit}
+              checked={isCheckedToday(habit.id)}
+              onToggle={() => toggleCheckIn(habit.id)}
+              onPress={() => handlePress(habit)}
+            />
           ))
         )}
       </ScrollView>
+
+      <HabitoHojeModal
+        habit={selectedHabit}
+        visible={showLog}
+        onClose={() => { setShowLog(false); setSelected(null); }}
+      />
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: colors.background },
-  scroll:  { flex: 1 },
-  content: { padding: 20, paddingBottom: 40 },
-  header:  { marginBottom: 20, marginTop: 8 },
-  dateSmall: {
-    color: colors.textSecondary, fontSize: 13,
-    fontWeight: '500', letterSpacing: 0.5, marginBottom: 4,
-  },
-  title: { color: colors.textPrimary, fontSize: 34, fontWeight: '800' },
-  progressCard: {
-    backgroundColor: colors.primary + '22',
-    borderRadius: 20, padding: 20, marginBottom: 28,
-    borderWidth: 1, borderColor: colors.primary + '44',
-  },
-  progressTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 16,
-  },
-  progressPercent: {
-    color: colors.primary, fontSize: 42, fontWeight: '800', lineHeight: 48,
-  },
-  progressSub: { color: colors.textSecondary, fontSize: 14, marginTop: 2 },
-  streakCircle: {
-    width: 52, height: 52, borderRadius: 26,
-    borderWidth: 2, borderColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  sectionTitle: {
-    color: colors.textPrimary, fontSize: 20,
-    fontWeight: '700', marginBottom: 14,
-  },
-  emptyState: { alignItems: 'center', paddingVertical: 48 },
-  emptyText: {
-    color: colors.textSecondary, fontSize: 16,
-    fontWeight: '600', marginTop: 12,
-  },
-  emptySubtext: {
-    color: colors.textSecondary, fontSize: 13,
-    textAlign: 'center', opacity: 0.7, marginTop: 8,
-  },
+  safe: { flex: 1, backgroundColor: C.bg },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, marginTop: 8 },
+  dateLabel: { fontSize: 11, color: C.textSec, letterSpacing: 1.2, marginBottom: 2 },
+  title: { fontSize: 34, fontWeight: '700', color: C.text },
+  progressCard: { backgroundColor: C.primary + '22', borderRadius: 16, padding: 20, marginBottom: 28, borderWidth: 1, borderColor: C.primary + '44' },
+  progressTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  progressPct: { fontSize: 42, fontWeight: '700', color: C.primaryLt },
+  progressSub: { fontSize: 14, color: C.textSec, marginTop: 2 },
+  streakBadge: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: C.primary, justifyContent: 'center', alignItems: 'center' },
+  progressBarBg: { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: C.primary, borderRadius: 3 },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: C.text, marginBottom: 12 },
+  habitCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: C.border },
+  habitCardDone: { opacity: 0.6 },
+  iconBox: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  habitInfo: { flex: 1 },
+  habitName: { fontSize: 16, fontWeight: '600', color: C.text },
+  habitNameDone: { textDecorationLine: 'line-through', color: C.textSec },
+  habitMeta: { fontSize: 12, color: C.textSec, marginTop: 3 },
+  checkbox: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  checkboxDone: { backgroundColor: C.primary, borderColor: C.primary },
+  emptyState: { alignItems: 'center', paddingVertical: 48, gap: 12 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: C.text },
+  emptyText: { fontSize: 14, color: C.textSec, textAlign: 'center', lineHeight: 20 },
 });
