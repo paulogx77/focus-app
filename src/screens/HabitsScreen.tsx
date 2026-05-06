@@ -1,14 +1,18 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import Screen from '../components/Screen';
 import HabitCard from '../components/HabitCard';
+import Screen from '../components/Screen';
 import StatCard from '../components/StatCard';
 import { useAppState } from '../context/AppStateContext';
 import { colors, radius, spacing } from '../theme';
+import type { RootStackParamList } from '../types';
 
-export default function HabitsScreen({ navigation }) {
+export default function HabitsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { habits, toggleHabitActive, deleteHabit } = useAppState();
 
   const activeCount = useMemo(() => habits.filter((habit) => habit.isActive).length, [habits]);
@@ -21,7 +25,7 @@ export default function HabitsScreen({ navigation }) {
           <Text style={styles.title}>Biblioteca de hábitos</Text>
           <Text style={styles.subtitle}>Cadastre, revise e organize os hábitos do usuário.</Text>
         </View>
-        <Pressable onPress={() => navigation.navigate('AddHabit')} style={styles.addButton}>
+        <Pressable onPress={() => navigation.navigate('AddHabit', undefined)} style={styles.addButton}>
           <MaterialCommunityIcons name="plus" size={18} color={colors.textPrimary} />
           <Text style={styles.addButtonText}>Adicionar</Text>
         </Pressable>
@@ -32,11 +36,11 @@ export default function HabitsScreen({ navigation }) {
         <StatCard label="Ativos" value={activeCount} accent={colors.success} />
       </View>
 
-        {habits.length === 0 ? (
+      {habits.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>Nenhum hábito criado</Text>
           <Text style={styles.emptyText}>Comece adicionando um hábito com ícone, cor, categoria e metas.</Text>
-          <Pressable onPress={() => navigation.navigate('AddHabit')} style={styles.emptyAction}>
+          <Pressable onPress={() => navigation.navigate('AddHabit', undefined)} style={styles.emptyAction}>
             <Text style={styles.emptyActionText}>Criar primeiro hábito</Text>
           </Pressable>
         </View>
@@ -45,17 +49,11 @@ export default function HabitsScreen({ navigation }) {
           <View key={habit.id} style={styles.habitBlock}>
             <HabitCard habit={habit} checked={false} dueToday={habit.isActive} />
             <View style={styles.actionsRow}>
-              <Pressable
-                onPress={() => navigation.navigate('AddHabit', { habitId: habit.id })}
-                style={[styles.actionChip, styles.editChip]}
-              >
+              <Pressable onPress={() => navigation.navigate('AddHabit', { habitId: habit.id })} style={[styles.actionChip, styles.editChip]}>
                 <MaterialCommunityIcons name="pencil" size={16} color={colors.textPrimary} />
                 <Text style={styles.actionText}>Editar</Text>
               </Pressable>
-              <Pressable
-                onPress={() => toggleHabitActive(habit.id)}
-                style={[styles.actionChip, habit.isActive ? styles.activeChip : styles.inactiveChip]}
-              >
+              <Pressable onPress={() => toggleHabitActive(habit.id)} style={[styles.actionChip, habit.isActive ? styles.activeChip : styles.inactiveChip]}>
                 <Text style={styles.actionText}>{habit.isActive ? 'Ativo' : 'Inativo'}</Text>
               </Pressable>
               <Pressable onPress={() => deleteHabit(habit.id)} style={[styles.actionChip, styles.deleteChip]}>

@@ -1,13 +1,20 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing } from '../theme';
 import { formatWeekdayLabel } from '../utils/date';
+import type { Habit } from '../types';
 
-export default function HabitCard({ habit, checked = false, onPress, onLongPress, dueToday = true }) {
-  const weekdays = Array.isArray(habit.daysOfWeek)
-    ? habit.daysOfWeek.map(formatWeekdayLabel).filter(Boolean).join(', ')
-    : '';
+type HabitCardProps = {
+  habit: Habit;
+  checked?: boolean;
+  onPress?: () => void;
+  onLongPress?: () => void;
+  dueToday?: boolean;
+};
+
+export default function HabitCard({ habit, checked = false, onPress, onLongPress, dueToday = true }: HabitCardProps) {
+  const weekdays = Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek.map(formatWeekdayLabel).filter(Boolean).join(', ') : '';
 
   return (
     <Pressable
@@ -22,7 +29,7 @@ export default function HabitCard({ habit, checked = false, onPress, onLongPress
       ]}
     >
       <View style={[styles.iconWrap, { backgroundColor: `${habit.color}20` }]}>
-        <MaterialCommunityIcons name={habit.icon} size={22} color={habit.color} />
+        <MaterialCommunityIcons name={habit.icon as never} size={22} color={habit.color} />
       </View>
       <View style={styles.content}>
         <View style={styles.rowTop}>

@@ -1,21 +1,28 @@
-import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRoute } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { categories, colorOptions, frequencyOptions, goalUnits, iconOptions, weekdayOptions } from '../data/options';
 import { useAppState } from '../context/AppStateContext';
 import { colors, radius, spacing } from '../theme';
+import type { Habit, HabitDraft, RootStackParamList } from '../types';
 
-const initialForm = {
+type Props = NativeStackScreenProps<RootStackParamList, 'AddHabit'>;
+
+type HabitForm = {
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  frequency: 'daily' | 'specific_days';
+  daysOfWeek: number[];
+  goalValue: string;
+  goalUnit: string;
+  color: string;
+};
+
+const initialForm: HabitForm = {
   name: '',
   description: '',
   icon: 'check',
@@ -27,12 +34,11 @@ const initialForm = {
   color: colorOptions[0],
 };
 
-export default function AddHabitScreen({ navigation }) {
+export default function AddHabitScreen({ navigation, route }: Props) {
   const { addHabit, updateHabit, habits } = useAppState();
-  const [form, setForm] = useState(initialForm);
-  const [editingHabit, setEditingHabit] = useState(null);
-  const route = useRoute();
-  const habitId = route?.params?.habitId;
+  const [form, setForm] = useState<HabitForm>(initialForm);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const habitId = route.params?.habitId;
 
   useEffect(() => {
     if (!habitId) {
@@ -59,18 +65,17 @@ export default function AddHabitScreen({ navigation }) {
     }
   }, [habitId, habits]);
 
-  function setField(key, value) {
+  function setField<K extends keyof HabitForm>(key: K, value: HabitForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function toggleDay(day) {
+  function toggleDay(day: number) {
     setForm((current) => {
       const exists = current.daysOfWeek.includes(day);
+
       return {
         ...current,
-        daysOfWeek: exists
-          ? current.daysOfWeek.filter((item) => item !== day)
-          : [...current.daysOfWeek, day].sort((a, b) => a - b),
+        daysOfWeek: exists ? current.daysOfWeek.filter((item) => item !== day) : [...current.daysOfWeek, day].sort((a, b) => a - b),
       };
     });
   }
@@ -87,7 +92,7 @@ export default function AddHabitScreen({ navigation }) {
       return;
     }
 
-    const payload = {
+    const payload: HabitDraft = {
       name,
       description: form.description.trim(),
       icon: form.icon,
@@ -135,11 +140,7 @@ export default function AddHabitScreen({ navigation }) {
         <Text style={styles.label}>Categoria</Text>
         <View style={styles.wrapRow}>
           {categories.map((item) => (
-            <Pressable
-              key={item}
-              onPress={() => setField('category', item)}
-              style={[styles.chip, form.category === item && styles.chipSelected]}
-            >
+            <Pressable key={item} onPress={() => setField('category', item)} style={[styles.chip, form.category === item && styles.chipSelected]}>
               <Text style={styles.chipText}>{item}</Text>
             </Pressable>
           ))}
@@ -148,11 +149,7 @@ export default function AddHabitScreen({ navigation }) {
         <Text style={styles.label}>Frequência</Text>
         <View style={styles.columnGap}>
           {frequencyOptions.map((option) => (
-            <Pressable
-              key={option.value}
-              onPress={() => setField('frequency', option.value)}
-              style={[styles.optionCard, form.frequency === option.value && styles.optionCardSelected]}
-            >
+            <Pressable key={option.value} onPress={() => setField('frequency', option.value)} style={[styles.optionCard, form.frequency === option.value && styles.optionCardSelected]}>
               <Text style={styles.optionTitle}>{option.label}</Text>
               <Text style={styles.optionSubtitle}>{option.description}</Text>
             </Pressable>
@@ -164,11 +161,7 @@ export default function AddHabitScreen({ navigation }) {
             <Text style={styles.label}>Dias específicos</Text>
             <View style={styles.weekRow}>
               {weekdayOptions.map((day) => (
-                <Pressable
-                  key={day.value}
-                  onPress={() => toggleDay(day.value)}
-                  style={[styles.weekChip, form.daysOfWeek.includes(day.value) && styles.weekChipSelected]}
-                >
+                <Pressable key={day.value} onPress={() => toggleDay(day.value)} style={[styles.weekChip, form.daysOfWeek.includes(day.value) && styles.weekChipSelected]}>
                   <Text style={styles.weekText}>{day.label}</Text>
                 </Pressable>
               ))}
@@ -188,11 +181,7 @@ export default function AddHabitScreen({ navigation }) {
           />
           <View style={styles.unitWrap}>
             {goalUnits.map((unit) => (
-              <Pressable
-                key={unit}
-                onPress={() => setField('goalUnit', unit)}
-                style={[styles.unitChip, form.goalUnit === unit && styles.unitChipSelected]}
-              >
+              <Pressable key={unit} onPress={() => setField('goalUnit', unit)} style={[styles.unitChip, form.goalUnit === unit && styles.unitChipSelected]}>
                 <Text style={styles.unitText}>{unit}</Text>
               </Pressable>
             ))}
@@ -202,16 +191,8 @@ export default function AddHabitScreen({ navigation }) {
         <Text style={styles.label}>Ícone</Text>
         <View style={styles.iconGrid}>
           {iconOptions.map((icon) => (
-            <Pressable
-              key={icon.value}
-              onPress={() => setField('icon', icon.value)}
-              style={[styles.iconOption, form.icon === icon.value && styles.iconOptionSelected]}
-            >
-              <MaterialCommunityIcons
-                name={icon.value}
-                size={22}
-                color={form.icon === icon.value ? colors.primaryLight : colors.textSecondary}
-              />
+            <Pressable key={icon.value} onPress={() => setField('icon', icon.value)} style={[styles.iconOption, form.icon === icon.value && styles.iconOptionSelected]}>
+              <MaterialCommunityIcons name={icon.value as never} size={22} color={form.icon === icon.value ? colors.primaryLight : colors.textSecondary} />
             </Pressable>
           ))}
         </View>
@@ -219,11 +200,7 @@ export default function AddHabitScreen({ navigation }) {
         <Text style={styles.label}>Cor do card</Text>
         <View style={styles.colorRow}>
           {colorOptions.map((color) => (
-            <Pressable
-              key={color}
-              onPress={() => setField('color', color)}
-              style={[styles.colorDot, { backgroundColor: color }, form.color === color && styles.colorDotSelected]}
-            />
+            <Pressable key={color} onPress={() => setField('color', color)} style={[styles.colorDot, { backgroundColor: color }, form.color === color && styles.colorDotSelected]} />
           ))}
         </View>
 

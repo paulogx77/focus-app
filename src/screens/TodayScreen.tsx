@@ -2,14 +2,15 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import Screen from '../components/Screen';
 import HabitCard from '../components/HabitCard';
 import ProgressBar from '../components/ProgressBar';
+import Screen from '../components/Screen';
 import { useAppState } from '../context/AppStateContext';
 import { colors, radius, spacing } from '../theme';
 import { formatLongDate, todayString } from '../utils/date';
+import type { Habit } from '../types';
 
-function isDueToday(habit, date = new Date()) {
+function isDueToday(habit: Habit, date = new Date()): boolean {
   if (!habit.isActive) return false;
   if (habit.frequency === 'daily') return true;
   return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(date.getDay());
@@ -20,16 +21,10 @@ export default function TodayScreen() {
   const today = new Date();
   const todayKey = todayString(today);
 
-  const dueHabits = useMemo(
-    () => habits.filter((habit) => isDueToday(habit, today)),
-    [habits, todayKey]
-  );
+  const dueHabits = useMemo(() => habits.filter((habit) => isDueToday(habit, today)), [habits, todayKey]);
 
   const completedHabits = useMemo(
-    () =>
-      dueHabits.filter((habit) =>
-        checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey)
-      ),
+    () => dueHabits.filter((habit) => checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey)),
     [dueHabits, checkIns, todayKey]
   );
 
@@ -69,7 +64,9 @@ export default function TodayScreen() {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Hábitos de hoje</Text>
-        <Text style={styles.sectionCount}>{completedHabits.length}/{dueHabits.length}</Text>
+        <Text style={styles.sectionCount}>
+          {completedHabits.length}/{dueHabits.length}
+        </Text>
       </View>
 
       {dueHabits.length === 0 ? (
@@ -79,18 +76,12 @@ export default function TodayScreen() {
         </View>
       ) : (
         dueHabits.map((habit) => {
-          const checked = checkIns.some(
-            (checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey
-          );
+          const checked = checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey);
 
           return (
-            <HabitCard
-              key={habit.id}
-              habit={habit}
-              checked={checked}
-              dueToday
-              onPress={() => toggleCheckIn(habit.id, todayKey)}
-            />
+            <View key={habit.id}>
+              <HabitCard habit={habit} checked={checked} dueToday onPress={() => toggleCheckIn(habit.id, todayKey)} />
+            </View>
           );
         })
       )}

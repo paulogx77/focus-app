@@ -1,8 +1,16 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing } from '../theme';
 
-export default function StatCard({ label, value, accent = colors.primary, helper }) {
+type StatCardProps = {
+  label: string;
+  value: ReactNode;
+  accent?: string;
+  helper?: ReactNode;
+};
+
+export default function StatCard({ label, value, accent = colors.primary, helper }: StatCardProps) {
   return (
     <View style={styles.card}>
       <View style={[styles.accent, { backgroundColor: accent }]} />

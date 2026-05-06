@@ -5,20 +5,29 @@ import Screen from '../components/Screen';
 import { useAppState } from '../context/AppStateContext';
 import { colors, radius, spacing } from '../theme';
 import { formatShortDate, getRelativeLabel, todayString } from '../utils/date';
+import type { CheckIn, Habit } from '../types';
+
+type HistoryItem = CheckIn & { habit?: Habit };
+
+type HistorySection = {
+  title: string;
+  subtitle: string;
+  data: HistoryItem[];
+};
 
 export default function HistoryScreen() {
   const { habits, checkIns } = useAppState();
 
-  const sections = useMemo(() => {
+  const sections = useMemo<HistorySection[]>(() => {
     const habitMap = new Map(habits.map((habit) => [habit.id, habit]));
-    const grouped = new Map();
+    const grouped = new Map<string, HistoryItem[]>();
 
     checkIns
       .slice()
       .sort((a, b) => b.date.localeCompare(a.date))
       .forEach((checkIn) => {
         if (!grouped.has(checkIn.date)) grouped.set(checkIn.date, []);
-        grouped.get(checkIn.date).push({ ...checkIn, habit: habitMap.get(checkIn.habitId) });
+        grouped.get(checkIn.date)?.push({ ...checkIn, habit: habitMap.get(checkIn.habitId) });
       });
 
     return Array.from(grouped.entries()).map(([date, items]) => ({
@@ -58,7 +67,9 @@ export default function HistoryScreen() {
             <View style={styles.itemCard}>
               <View style={styles.itemLeft}>
                 <Text style={styles.itemName}>{item.habit?.name ?? 'Hábito removido'}</Text>
-                <Text style={styles.itemMeta}>Valor: {item.value} • {item.date === todayString() ? 'Hoje' : item.date}</Text>
+                <Text style={styles.itemMeta}>
+                  Valor: {item.value} • {item.date === todayString() ? 'Hoje' : item.date}
+                </Text>
               </View>
               <View style={styles.dot} />
             </View>

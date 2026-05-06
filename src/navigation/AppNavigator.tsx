@@ -1,20 +1,22 @@
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { colors } from '../theme';
 import { useAppState } from '../context/AppStateContext';
-import LoginScreen from '../screens/LoginScreen';
-import TodayScreen from '../screens/TodayScreen';
-import HabitsScreen from '../screens/HabitsScreen';
 import AddHabitScreen from '../screens/AddHabitScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import HabitsScreen from '../screens/HabitsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
+import LoginScreen from '../screens/LoginScreen';
+import TodayScreen from '../screens/TodayScreen';
+import { colors } from '../theme';
+import type { BottomTabParamList, RootStackParamList } from '../types';
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator<BottomTabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const navTheme = {
   ...DefaultTheme,
@@ -29,6 +31,13 @@ const navTheme = {
 };
 
 function Tabs() {
+  const iconMap: Record<keyof BottomTabParamList, ComponentProps<typeof MaterialCommunityIcons>['name']> = {
+    Hoje: 'calendar-today',
+    Hábitos: 'format-list-checks',
+    Dashboard: 'chart-box-outline',
+    Histórico: 'history',
+  };
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -42,16 +51,7 @@ function Tabs() {
           paddingTop: 8,
           paddingBottom: 10,
         },
-        tabBarIcon: ({ color, size }) => {
-          const iconMap = {
-            Hoje: 'calendar-today',
-            Hábitos: 'format-list-checks',
-            Dashboard: 'chart-box-outline',
-            Histórico: 'history',
-          };
-
-          return <MaterialCommunityIcons name={iconMap[route.name]} size={size} color={color} />;
-        },
+        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name={iconMap[route.name]} size={size} color={color} />,
       })}
     >
       <Tab.Screen name="Hoje" component={TodayScreen} />

@@ -2,7 +2,13 @@ import { StyleSheet, View } from 'react-native';
 
 import { colors, radius } from '../theme';
 
-export default function ProgressBar({ value = 0, trackColor = colors.surfaceElevated, fillColor = colors.primary }) {
+type ProgressBarProps = {
+  value?: number;
+  trackColor?: string;
+  fillColor?: string;
+};
+
+export default function ProgressBar({ value = 0, trackColor = colors.surfaceElevated, fillColor = colors.primary }: ProgressBarProps) {
   const safeValue = Math.max(0, Math.min(1, value));
 
   return (

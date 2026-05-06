@@ -1,11 +1,11 @@
-export const categories = ['Saúde', 'Estudo', 'Trabalho', 'Bem-estar', 'Casa', 'Pessoal'];
+export const categories = ['Saúde', 'Estudo', 'Trabalho', 'Bem-estar', 'Casa', 'Pessoal'] as const;
 
 export const frequencyOptions = [
   { value: 'daily', label: 'Todos os dias', description: 'Fica ativo diariamente.' },
   { value: 'specific_days', label: 'Dias específicos', description: 'Escolha os dias da semana.' },
-];
+] as const;
 
-export const goalUnits = ['min', 'vez', 'páginas', 'km', 'ml', 'sessão'];
+export const goalUnits = ['min', 'vez', 'páginas', 'km', 'ml', 'sessão'] as const;
 
 export const weekdayOptions = [
   { value: 0, label: 'Dom' },
@@ -15,7 +15,7 @@ export const weekdayOptions = [
   { value: 4, label: 'Qui' },
   { value: 5, label: 'Sex' },
   { value: 6, label: 'Sáb' },
-];
+] as const;
 
 export const iconOptions = [
   { value: 'check', label: 'Check' },
@@ -34,7 +34,7 @@ export const iconOptions = [
   { value: 'alarm', label: 'Time' },
   { value: 'palette', label: 'Art' },
   { value: 'home-heart', label: 'Home' },
-];
+] as const;
 
 export const colorOptions = [
   '#7C3AED',
@@ -47,4 +47,4 @@ export const colorOptions = [
   '#3B82F6',
   '#8B5CF6',
   '#14B8A6',
-];
+] as const;

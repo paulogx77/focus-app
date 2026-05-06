@@ -1,14 +1,15 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import ProgressBar from '../components/ProgressBar';
 import Screen from '../components/Screen';
 import StatCard from '../components/StatCard';
-import ProgressBar from '../components/ProgressBar';
 import { useAppState } from '../context/AppStateContext';
 import { colors, radius, spacing } from '../theme';
 import { addDays, startOfWeek, todayString } from '../utils/date';
+import type { Habit } from '../types';
 
-function isDueToday(habit, date) {
+function isDueToday(habit: Habit, date: Date): boolean {
   if (!habit.isActive) return false;
   if (habit.frequency === 'daily') return true;
   return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(date.getDay());
@@ -22,18 +23,14 @@ export default function DashboardScreen() {
     const today = new Date();
     const todayKey = todayString(today);
     const dueToday = activeHabits.filter((habit) => isDueToday(habit, today));
-    const completedToday = dueToday.filter((habit) =>
-      checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey)
-    );
+    const completedToday = dueToday.filter((habit) => checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey));
 
     const weekStart = startOfWeek(today);
     const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
     const weekSeries = weekDays.map((date) => {
       const key = todayString(date);
       const due = activeHabits.filter((habit) => isDueToday(habit, date));
-      const completed = due.filter((habit) =>
-        checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === key)
-      );
+      const completed = due.filter((habit) => checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === key));
 
       return {
         key,
@@ -62,9 +59,7 @@ export default function DashboardScreen() {
       return Math.max(best, current);
     }, 0);
 
-    const successRate = weekSeries.length
-      ? weekSeries.reduce((sum, item) => sum + item.value, 0) / weekSeries.length
-      : 0;
+    const successRate = weekSeries.length ? weekSeries.reduce((sum, item) => sum + item.value, 0) / weekSeries.length : 0;
 
     return {
       activeHabits: activeHabits.length,

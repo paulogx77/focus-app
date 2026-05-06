@@ -12,7 +12,7 @@ export const colors = {
   textSecondary: '#9CA3AF',
   border: '#2A2A3E',
   borderStrong: '#3A3A55',
-};
+} as const;
 
 export const spacing = {
   xs: 4,
@@ -20,11 +20,11 @@ export const spacing = {
   md: 12,
   lg: 16,
   xl: 20,
-};
+} as const;
 
 export const radius = {
   sm: 12,
   md: 16,
   lg: 20,
   xl: 28,
-};
+} as const;
