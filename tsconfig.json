@@ -8,6 +8,13 @@
     "esModuleInterop": true,
     "baseUrl": "."
   },
-  "include": ["**/*.ts", "**/*.tsx", "expo-env.d.ts"],
-  "exclude": ["node_modules", "dist", "web-build"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "web-build"
+  ]
 }

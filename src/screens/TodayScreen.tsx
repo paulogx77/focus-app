@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import HabitCard from '../components/HabitCard';
@@ -9,6 +9,7 @@ import { useAppState } from '../context/AppStateContext';
 import { colors, radius, spacing } from '../theme';
 import { formatLongDate, todayString } from '../utils/date';
 import type { Habit } from '../types';
+import { getCheckInForHabitDate, getHabitProgress } from '../utils/habitProgress';
 
 function isDueToday(habit: Habit, date = new Date()): boolean {
   if (!habit.isActive) return false;
@@ -18,17 +19,51 @@ function isDueToday(habit: Habit, date = new Date()): boolean {
 
 export default function TodayScreen() {
   const { user, habits, checkIns, toggleCheckIn, signOut } = useAppState();
+  const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
+  const [progressInput, setProgressInput] = useState('');
   const today = new Date();
   const todayKey = todayString(today);
 
   const dueHabits = useMemo(() => habits.filter((habit) => isDueToday(habit, today)), [habits, todayKey]);
 
+  const progressByHabitId = useMemo(() => {
+    return new Map(
+      dueHabits.map((habit) => {
+        const checkIn = getCheckInForHabitDate(checkIns, habit.id, todayKey);
+        return [habit.id, getHabitProgress(habit, checkIn)];
+      })
+    );
+  }, [checkIns, dueHabits, todayKey]);
+
   const completedHabits = useMemo(
-    () => dueHabits.filter((habit) => checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey)),
-    [dueHabits, checkIns, todayKey]
+    () => dueHabits.filter((habit) => progressByHabitId.get(habit.id)?.isComplete),
+    [dueHabits, progressByHabitId]
   );
 
   const progress = dueHabits.length ? completedHabits.length / dueHabits.length : 0;
+
+  function openProgressEditor(habit: Habit) {
+    const current = getCheckInForHabitDate(checkIns, habit.id, todayKey);
+    setSelectedHabit(habit);
+    setProgressInput(current ? String(current.value) : '');
+  }
+
+  async function saveProgress() {
+    if (!selectedHabit) {
+      return;
+    }
+
+    const parsed = Number(String(progressInput).replace(',', '.'));
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      Alert.alert('Valor inválido', 'Informe uma quantidade válida para o progresso.');
+      return;
+    }
+
+    await toggleCheckIn(selectedHabit.id, todayKey, parsed);
+    setSelectedHabit(null);
+    setProgressInput('');
+  }
 
   return (
     <Screen scroll>
@@ -76,11 +111,18 @@ export default function TodayScreen() {
         </View>
       ) : (
         dueHabits.map((habit) => {
-          const checked = checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey);
+          const progressInfo = progressByHabitId.get(habit.id);
 
           return (
             <View key={habit.id}>
-              <HabitCard habit={habit} checked={checked} dueToday onPress={() => toggleCheckIn(habit.id, todayKey)} />
+              <HabitCard
+                habit={habit}
+                checked={Boolean(progressInfo?.isComplete)}
+                dueToday
+                onPress={() => openProgressEditor(habit)}
+                progressLabel={progressInfo?.label}
+                progressValue={progressInfo?.percent}
+              />
             </View>
           );
         })
@@ -88,8 +130,34 @@ export default function TodayScreen() {
 
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>Foco do dia</Text>
-        <Text style={styles.tipText}>Toque em um hábito para marcar ou desmarcar sua execução de hoje.</Text>
+        <Text style={styles.tipText}>Toque em um hábito para informar quanto você fez hoje.</Text>
       </View>
+
+      <Modal visible={Boolean(selectedHabit)} transparent animationType="fade" onRequestClose={() => setSelectedHabit(null)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setSelectedHabit(null)}>
+          <Pressable style={styles.modalCard} onPress={() => null}>
+            <Text style={styles.modalKicker}>Progresso de hoje</Text>
+            <Text style={styles.modalTitle}>{selectedHabit?.name}</Text>
+            <Text style={styles.modalSubtitle}>Digite a quantidade feita agora. Ex: 30 páginas, 1 sessão.</Text>
+            <TextInput
+              value={progressInput}
+              onChangeText={setProgressInput}
+              style={styles.modalInput}
+              placeholder="0"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="numeric"
+            />
+            <View style={styles.modalActions}>
+              <Pressable onPress={() => setSelectedHabit(null)} style={[styles.modalButton, styles.modalSecondaryButton]}>
+                <Text style={styles.modalSecondaryText}>Cancelar</Text>
+              </Pressable>
+              <Pressable onPress={saveProgress} style={[styles.modalButton, styles.modalPrimaryButton]}>
+                <Text style={styles.modalPrimaryText}>Salvar</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Screen>
   );
 }
@@ -217,5 +285,70 @@ const styles = StyleSheet.create({
   tipText: {
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderColor: colors.border,
+    borderWidth: 1,
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  modalKicker: {
+    color: colors.primaryLight,
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+    fontSize: 12,
+  },
+  modalTitle: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  modalInput: {
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    color: colors.textPrimary,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  modalButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: radius.md,
+  },
+  modalSecondaryButton: {
+    backgroundColor: colors.surfaceElevated,
+  },
+  modalPrimaryButton: {
+    backgroundColor: colors.primary,
+  },
+  modalSecondaryText: {
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  modalPrimaryText: {
+    color: colors.textPrimary,
+    fontWeight: '700',
   },
 });

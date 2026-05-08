@@ -58,7 +58,7 @@ export type AppStateContextValue = AppStateSnapshot & {
   updateHabit: (habitId: number, payload: Partial<HabitDraft>) => Promise<AppStateSnapshot>;
   toggleHabitActive: (habitId: number) => Promise<AppStateSnapshot>;
   deleteHabit: (habitId: number) => Promise<AppStateSnapshot>;
-  toggleCheckIn: (habitId: number, date?: string) => Promise<AppStateSnapshot>;
+  toggleCheckIn: (habitId: number, date?: string, value?: number) => Promise<AppStateSnapshot>;
   resetCheckIns: () => Promise<AppStateSnapshot>;
   setState: (state: AppStateSnapshot) => Promise<AppStateSnapshot>;
 };

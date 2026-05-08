@@ -8,6 +8,7 @@ import { useAppState } from '../context/AppStateContext';
 import { colors, radius, spacing } from '../theme';
 import { addDays, startOfWeek, todayString } from '../utils/date';
 import type { Habit } from '../types';
+import { getCheckInForHabitDate, getHabitProgress } from '../utils/habitProgress';
 
 function isDueToday(habit: Habit, date: Date): boolean {
   if (!habit.isActive) return false;
@@ -23,14 +24,14 @@ export default function DashboardScreen() {
     const today = new Date();
     const todayKey = todayString(today);
     const dueToday = activeHabits.filter((habit) => isDueToday(habit, today));
-    const completedToday = dueToday.filter((habit) => checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === todayKey));
+    const completedToday = dueToday.filter((habit) => getHabitProgress(habit, getCheckInForHabitDate(checkIns, habit.id, todayKey)).isComplete);
 
     const weekStart = startOfWeek(today);
     const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
     const weekSeries = weekDays.map((date) => {
       const key = todayString(date);
       const due = activeHabits.filter((habit) => isDueToday(habit, date));
-      const completed = due.filter((habit) => checkIns.some((checkIn) => checkIn.habitId === habit.id && checkIn.date === key));
+      const completed = due.filter((habit) => getHabitProgress(habit, getCheckInForHabitDate(checkIns, habit.id, key)).isComplete);
 
       return {
         key,
@@ -42,8 +43,8 @@ export default function DashboardScreen() {
     });
 
     const bestStreak = activeHabits.reduce((best, habit) => {
-      const dates = checkIns
-        .filter((checkIn) => checkIn.habitId === habit.id)
+      const completedDates = checkIns
+        .filter((checkIn) => checkIn.habitId === habit.id && getHabitProgress(habit, checkIn).isComplete)
         .map((checkIn) => checkIn.date)
         .sort((a, b) => b.localeCompare(a));
 
@@ -51,7 +52,7 @@ export default function DashboardScreen() {
       let cursor = new Date();
       cursor.setHours(0, 0, 0, 0);
 
-      while (dates.includes(todayString(cursor))) {
+      while (completedDates.includes(todayString(cursor))) {
         current += 1;
         cursor = addDays(cursor, -1);
       }

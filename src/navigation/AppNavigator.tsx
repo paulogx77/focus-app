@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ComponentProps } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppState } from '../context/AppStateContext';
 import AddHabitScreen from '../screens/AddHabitScreen';
@@ -31,6 +32,7 @@ const navTheme = {
 };
 
 function Tabs() {
+  const insets = useSafeAreaInsets();
   const iconMap: Record<keyof BottomTabParamList, ComponentProps<typeof MaterialCommunityIcons>['name']> = {
     Hoje: 'calendar-today',
     Hábitos: 'format-list-checks',
@@ -47,9 +49,9 @@ function Tabs() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          height: 64,
+          height: 64 + insets.bottom,
           paddingTop: 8,
-          paddingBottom: 10,
+          paddingBottom: Math.max(10, insets.bottom + 10),
         },
         tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name={iconMap[route.name]} size={size} color={color} />,
       })}

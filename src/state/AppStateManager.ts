@@ -83,25 +83,51 @@ export class AppStateManager {
     }));
   };
 
-  public toggleCheckIn = async (habitId: number, date = this.todayString()): Promise<AppStateSnapshot> => {
+  public toggleCheckIn = async (habitId: number, date = this.todayString(), value?: number): Promise<AppStateSnapshot> => {
     return this.commit((previous) => {
-      const exists = previous.checkIns.some((checkIn) => checkIn.habitId === habitId && checkIn.date === date);
+      const index = previous.checkIns.findIndex((checkIn) => checkIn.habitId === habitId && checkIn.date === date);
+      const normalizedValue = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : undefined;
+
+      if (normalizedValue === undefined) {
+        const exists = index >= 0;
+
+        return {
+          ...previous,
+          checkIns: exists
+            ? previous.checkIns.filter((checkIn) => !(checkIn.habitId === habitId && checkIn.date === date))
+            : [
+                ...previous.checkIns,
+                {
+                  id: this.nextId(previous.checkIns),
+                  habitId,
+                  date,
+                  value: 1,
+                  note: '',
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+        };
+      }
+
+      if (normalizedValue <= 0) {
+        return {
+          ...previous,
+          checkIns: previous.checkIns.filter((checkIn) => !(checkIn.habitId === habitId && checkIn.date === date)),
+        };
+      }
+
+      const nextCheckIn = {
+        id: index >= 0 ? previous.checkIns[index].id : this.nextId(previous.checkIns),
+        habitId,
+        date,
+        value: normalizedValue,
+        note: '',
+        createdAt: index >= 0 ? previous.checkIns[index].createdAt : new Date().toISOString(),
+      };
 
       return {
         ...previous,
-        checkIns: exists
-          ? previous.checkIns.filter((checkIn) => !(checkIn.habitId === habitId && checkIn.date === date))
-          : [
-              ...previous.checkIns,
-              {
-                id: this.nextId(previous.checkIns),
-                habitId,
-                date,
-                value: 1,
-                note: '',
-                createdAt: new Date().toISOString(),
-              },
-            ],
+        checkIns: index >= 0 ? previous.checkIns.map((checkIn, currentIndex) => (currentIndex === index ? nextCheckIn : checkIn)) : [...previous.checkIns, nextCheckIn],
       };
     });
   };
