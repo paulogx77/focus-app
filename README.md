@@ -50,3 +50,19 @@ npm run web
 - `src/screens` - telas
 - `src/context` e `src/state` - estado da aplicação
 - `src/storage` - persistência local
+
+## Status Atual
+
+- Login com Google e perfil já foram integrados ao fluxo principal.
+- Persistência foi migrada de `AsyncStorage` para `SQLite`, com migração automática de dados legados.
+- Leituras de `Hoje`, `Dashboard` e `Histórico` já saem da camada de dados, não mais da UI.
+- Preferências de notificações foram conectadas a uma base de lembrete diário com `expo-notifications`.
+- O app foi refinado visualmente com tema dark glassmorphism, fundo minimalista e navegação inferior mais autoral.
+- `expo-doctor` está limpo e `npx tsc --noEmit` está passando.
+
+## Ponto De Retomada
+
+- O próximo passo é preparar e validar um build de teste nativo.
+- O projeto já está pronto para isso com `expo-dev-client`, `metro.config.js` e `eas.json`.
+- No ambiente atual, o bloqueio foi local: Android SDK / `adb` não configurados no Windows.
+- Para continuar, basta configurar o SDK Android e então rodar `npm run android:run` ou usar `eas build`.

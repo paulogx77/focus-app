@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "Focus2.0",
-    "slug": "Focus2.0",
+    "slug": "focus-2-0",
+    "scheme": "focus20",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,10 +21,16 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.euallandev.focus20"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-web-browser",
+      "expo-font"
+    ]
   }
 }

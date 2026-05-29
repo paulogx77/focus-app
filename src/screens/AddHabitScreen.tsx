@@ -124,6 +124,15 @@ export default function AddHabitScreen({ navigation, route }: Props) {
       </View>
 
       <View style={styles.card}>
+        <View style={[styles.previewCard, { borderColor: `${form.color}66`, backgroundColor: `${form.color}14` }]}>
+          <View style={styles.previewLeft}>
+            <Text style={styles.previewKicker}>Preview</Text>
+            <Text style={styles.previewTitle}>{form.name.trim() || 'Novo hábito'}</Text>
+            <Text style={styles.previewMeta}>{form.category} • {form.frequency === 'daily' ? 'Diário' : 'Dias específicos'}</Text>
+          </View>
+          <View style={[styles.previewDot, { backgroundColor: form.color }]} />
+        </View>
+
         <Text style={styles.label}>Nome</Text>
         <TextInput value={form.name} onChangeText={(value) => setField('name', value)} style={styles.input} placeholder="Ex: Ler 20 minutos" placeholderTextColor={colors.textSecondary} />
 
@@ -233,40 +242,86 @@ const styles = StyleSheet.create({
   kicker: {
     color: colors.primaryLight,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontSize: 12,
+    letterSpacing: 1.8,
+    fontSize: 11,
+    fontWeight: '700',
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: '800',
+    letterSpacing: -0.6,
   },
   subtitle: {
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 21,
+    fontSize: 14,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceGlass,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderRadius: radius.xl,
     padding: spacing.xl,
     gap: spacing.md,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
+  },
+  previewCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: 14,
+  },
+  previewLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  previewKicker: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+  },
+  previewTitle: {
+    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  previewMeta: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  previewDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   label: {
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
     marginTop: 4,
   },
   input: {
-    backgroundColor: colors.surfaceElevated,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceGlassStrong,
+    borderColor: colors.borderGlass,
     borderWidth: 1,
     borderRadius: radius.md,
     color: colors.textPrimary,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    fontSize: 15,
   },
   textArea: {
     minHeight: 96,
@@ -278,16 +333,16 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   chip: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 11,
   },
   chipSelected: {
     borderColor: colors.primaryLight,
-    backgroundColor: `${colors.primaryLight}20`,
+    backgroundColor: `${colors.primaryLight}24`,
   },
   chipText: {
     color: colors.textPrimary,
@@ -297,16 +352,16 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   optionCard: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderRadius: radius.md,
     padding: spacing.lg,
     gap: 4,
   },
   optionCardSelected: {
     borderColor: colors.primaryLight,
-    backgroundColor: `${colors.primaryLight}18`,
+    backgroundColor: `${colors.primaryLight}22`,
   },
   optionTitle: {
     color: colors.textPrimary,
@@ -323,16 +378,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   weekChip: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
   weekChipSelected: {
     borderColor: colors.success,
-    backgroundColor: `${colors.success}20`,
+    backgroundColor: `${colors.success}22`,
   },
   weekText: {
     color: colors.textPrimary,
@@ -353,16 +408,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   unitChip: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
   unitChipSelected: {
     borderColor: colors.primaryLight,
-    backgroundColor: `${colors.primaryLight}20`,
+    backgroundColor: `${colors.primaryLight}22`,
   },
   unitText: {
     color: colors.textPrimary,
@@ -379,13 +434,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
   },
   iconOptionSelected: {
     borderColor: colors.primaryLight,
-    backgroundColor: `${colors.primaryLight}20`,
+    backgroundColor: `${colors.primaryLight}22`,
   },
   colorRow: {
     flexDirection: 'row',
@@ -415,16 +470,18 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   secondaryButton: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
   },
   secondaryButtonText: {
     color: colors.textPrimary,
     fontWeight: '700',
   },
   primaryButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: `${colors.primary}E6`,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   primaryButtonText: {
     color: colors.textPrimary,

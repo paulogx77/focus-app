@@ -20,6 +20,7 @@ export default function HabitCard({ habit, checked = false, onPress, onLongPress
   const weekdays = Array.isArray(habit.daysOfWeek) ? habit.daysOfWeek.map(formatWeekdayLabel).filter(Boolean).join(', ') : '';
   const hasProgress = typeof progressValue === 'number' && typeof progressLabel === 'string';
   const statusColor = checked ? colors.success : hasProgress && progressValue > 0 ? colors.primaryLight : colors.surfaceElevated;
+  const frequencyLabel = habit.frequency === 'daily' ? 'Todos os dias' : `Dias: ${weekdays || 'não definido'}`;
 
   return (
     <Pressable
@@ -33,6 +34,7 @@ export default function HabitCard({ habit, checked = false, onPress, onLongPress
         !dueToday && styles.disabled,
       ]}
     >
+      <View style={[styles.glow, { backgroundColor: `${habit.color}26` }]} />
       <View style={[styles.iconWrap, { backgroundColor: `${habit.color}20` }]}> 
         <MaterialCommunityIcons name={habit.icon as never} size={22} color={habit.color} />
       </View>
@@ -41,11 +43,14 @@ export default function HabitCard({ habit, checked = false, onPress, onLongPress
           <Text style={styles.name}>{habit.name}</Text>
           <View style={[styles.status, { backgroundColor: statusColor }]} />
         </View>
+        <View style={styles.metaRow}>
+          <Text style={styles.categoryPill}>{habit.category}</Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {frequencyLabel}
+          </Text>
+        </View>
         <Text style={styles.meta} numberOfLines={2}>
           {habit.category} {habit.goalValue ? `• Meta: ${habit.goalValue} ${habit.goalUnit}` : ''}
-        </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {habit.frequency === 'daily' ? 'Todos os dias' : `Dias: ${weekdays || 'não definido'}`}
         </Text>
         {habit.description ? (
           <Text style={styles.description} numberOfLines={2}>
@@ -70,14 +75,21 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     gap: spacing.md,
-    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceGlass,
     borderWidth: 1,
     borderRadius: radius.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
+    borderColor: colors.borderGlass,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 3,
   },
   checked: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
   },
   disabled: {
     opacity: 0.7,
@@ -85,16 +97,26 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.88,
   },
+  glow: {
+    position: 'absolute',
+    top: -26,
+    right: -12,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+  },
   iconWrap: {
     width: 46,
     height: 46,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   content: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
   rowTop: {
     flexDirection: 'row',
@@ -107,6 +129,26 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  categoryPill: {
+    color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.9,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   meta: {
     color: colors.textSecondary,

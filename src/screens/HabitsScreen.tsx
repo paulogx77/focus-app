@@ -38,6 +38,9 @@ export default function HabitsScreen() {
 
       {habits.length === 0 ? (
         <View style={styles.emptyCard}>
+          <View style={styles.emptyIconWrap}>
+            <MaterialCommunityIcons name="plus-circle-outline" size={18} color={colors.primaryLight} />
+          </View>
           <Text style={styles.emptyTitle}>Nenhum hábito criado</Text>
           <Text style={styles.emptyText}>Comece adicionando um hábito com ícone, cor, categoria e metas.</Text>
           <Pressable onPress={() => navigation.navigate('AddHabit', undefined)} style={styles.emptyAction}>
@@ -77,28 +80,34 @@ const styles = StyleSheet.create({
   kicker: {
     color: colors.primaryLight,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontSize: 12,
-    marginBottom: 4,
+    letterSpacing: 1.8,
+    fontSize: 11,
+    marginBottom: 6,
+    fontWeight: '700',
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: '800',
+    letterSpacing: -0.6,
   },
   subtitle: {
     color: colors.textSecondary,
     marginTop: 4,
     maxWidth: 280,
+    fontSize: 14,
+    lineHeight: 21,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   addButtonText: {
     color: colors.textPrimary,
@@ -109,24 +118,37 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   emptyCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceGlass,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderRadius: radius.xl,
     padding: spacing.xl,
     gap: spacing.md,
+  },
+  emptyIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   emptyTitle: {
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   emptyText: {
     color: colors.textSecondary,
     lineHeight: 20,
   },
   emptyAction: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
     alignSelf: 'flex-start',
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -152,6 +174,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   editChip: {
     backgroundColor: `${colors.primaryLight}20`,

@@ -15,6 +15,15 @@ type ScreenProps = {
 export default function Screen({ children, scroll = false, contentStyle, style }: ScreenProps) {
   return (
     <SafeAreaView style={[styles.safeArea, style]}>
+      <View pointerEvents="none" style={styles.backgroundLayer}>
+        <View style={styles.topHairline} />
+        <View style={styles.leftHairline} />
+        <View style={styles.rightHairline} />
+        <View style={styles.diagonalPanelLarge} />
+        <View style={styles.centerBand} />
+        <View style={styles.bottomPanel} />
+      </View>
+
       {scroll ? (
         <ScrollView style={[styles.container, contentStyle]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {children}
@@ -31,10 +40,69 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  backgroundLayer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  topHairline: {
+    position: 'absolute',
+    top: 12,
+    left: 28,
+    right: 28,
+    height: 1,
+    backgroundColor: colors.lineSoft,
+  },
+  leftHairline: {
+    position: 'absolute',
+    top: 84,
+    left: 18,
+    width: 1,
+    height: 120,
+    backgroundColor: colors.lineSoft,
+  },
+  rightHairline: {
+    position: 'absolute',
+    top: '22%',
+    right: 18,
+    width: 1,
+    height: 120,
+    backgroundColor: colors.lineSoft,
+  },
+  diagonalPanelLarge: {
+    position: 'absolute',
+    top: -80,
+    right: -140,
+    width: 260,
+    height: 420,
+    backgroundColor: colors.panelTintStrong,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+    transform: [{ rotate: '18deg' }],
+  },
+  centerBand: {
+    position: 'absolute',
+    top: '38%',
+    left: 32,
+    right: 32,
+    height: 1,
+    backgroundColor: colors.lineSoft,
+    transform: [{ rotate: '-4deg' }],
+  },
+  bottomPanel: {
+    position: 'absolute',
+    bottom: -60,
+    left: -40,
+    width: 180,
+    height: 220,
+    backgroundColor: colors.panelTint,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+    transform: [{ rotate: '-14deg' }],
+  },
   container: {
     flex: 1,
     padding: spacing.xl,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingBottom: 32,

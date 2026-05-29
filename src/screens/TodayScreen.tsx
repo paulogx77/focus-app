@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -6,46 +6,43 @@ import HabitCard from '../components/HabitCard';
 import ProgressBar from '../components/ProgressBar';
 import Screen from '../components/Screen';
 import { useAppState } from '../context/AppStateContext';
+import { useAppQuery } from '../context/useAppQuery';
 import { colors, radius, spacing } from '../theme';
 import { formatLongDate, todayString } from '../utils/date';
-import type { Habit } from '../types';
-import { getCheckInForHabitDate, getHabitProgress } from '../utils/habitProgress';
-
-function isDueToday(habit: Habit, date = new Date()): boolean {
-  if (!habit.isActive) return false;
-  if (habit.frequency === 'daily') return true;
-  return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(date.getDay());
-}
+import type { Habit, TodaySummary } from '../types';
 
 export default function TodayScreen() {
-  const { user, habits, checkIns, toggleCheckIn, signOut } = useAppState();
+  const { user, habits, checkIns, toggleCheckIn, signOut, getTodaySummary } = useAppState();
   const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
   const [progressInput, setProgressInput] = useState('');
+  const [noteInput, setNoteInput] = useState('');
   const today = new Date();
   const todayKey = todayString(today);
-
-  const dueHabits = useMemo(() => habits.filter((habit) => isDueToday(habit, today)), [habits, todayKey]);
-
-  const progressByHabitId = useMemo(() => {
-    return new Map(
-      dueHabits.map((habit) => {
-        const checkIn = getCheckInForHabitDate(checkIns, habit.id, todayKey);
-        return [habit.id, getHabitProgress(habit, checkIn)];
-      })
-    );
-  }, [checkIns, dueHabits, todayKey]);
-
-  const completedHabits = useMemo(
-    () => dueHabits.filter((habit) => progressByHabitId.get(habit.id)?.isComplete),
-    [dueHabits, progressByHabitId]
+  const accent = user?.accentColor ?? colors.primary;
+  const summary = useAppQuery(
+    () => getTodaySummary(todayKey),
+    [habits, checkIns, getTodaySummary, todayKey],
+    {
+      initialData: {
+        totalHabits: 0,
+        dueHabits: [],
+        completedCount: 0,
+        progress: 0,
+      },
+    }
   );
 
-  const progress = dueHabits.length ? completedHabits.length / dueHabits.length : 0;
-
   function openProgressEditor(habit: Habit) {
-    const current = getCheckInForHabitDate(checkIns, habit.id, todayKey);
+    const current = summary.dueHabits.find((item) => item.habit.id === habit.id)?.checkIn;
     setSelectedHabit(habit);
     setProgressInput(current ? String(current.value) : '');
+    setNoteInput(current?.note ?? '');
+  }
+
+  function closeProgressEditor() {
+    setSelectedHabit(null);
+    setProgressInput('');
+    setNoteInput('');
   }
 
   async function saveProgress() {
@@ -60,9 +57,8 @@ export default function TodayScreen() {
       return;
     }
 
-    await toggleCheckIn(selectedHabit.id, todayKey, parsed);
-    setSelectedHabit(null);
-    setProgressInput('');
+    await toggleCheckIn(selectedHabit.id, todayKey, parsed, noteInput);
+    closeProgressEditor();
   }
 
   return (
@@ -76,11 +72,26 @@ export default function TodayScreen() {
         <View style={styles.headerActions}>
           <View style={styles.dayBadge}>
             <MaterialCommunityIcons name="calendar-today" size={18} color={colors.primaryLight} />
-            <Text style={styles.dayBadgeText}>{dueHabits.length} hábitos</Text>
+            <Text style={styles.dayBadgeText}>{summary.dueHabits.length} hábitos</Text>
           </View>
           <Pressable onPress={signOut} style={styles.logoutButton}>
             <Text style={styles.logoutText}>Sair</Text>
           </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.quickPanel}>
+        <View style={styles.quickPill}>
+          <Text style={styles.quickPillValue}>{summary.totalHabits}</Text>
+          <Text style={styles.quickPillLabel}>hábitos totais</Text>
+        </View>
+        <View style={styles.quickPill}>
+          <Text style={styles.quickPillValue}>{summary.completedCount}</Text>
+          <Text style={styles.quickPillLabel}>concluídos hoje</Text>
+        </View>
+        <View style={styles.quickPill}>
+          <Text style={styles.quickPillValue}>{user?.provider === 'google' ? 'Google' : 'Local'}</Text>
+          <Text style={styles.quickPillLabel}>sessão ativa</Text>
         </View>
       </View>
 
@@ -89,39 +100,40 @@ export default function TodayScreen() {
           <View>
             <Text style={styles.progressTitle}>Progresso do dia</Text>
             <Text style={styles.progressSubtitle}>
-              {completedHabits.length} de {dueHabits.length} concluídos
+              {summary.completedCount} de {summary.dueHabits.length} concluídos
             </Text>
           </View>
-          <Text style={styles.progressValue}>{Math.round(progress * 100)}%</Text>
+          <Text style={[styles.progressValue, { color: accent }]}>{Math.round(summary.progress * 100)}%</Text>
         </View>
-        <ProgressBar value={progress} />
+        <ProgressBar value={summary.progress} fillColor={accent} />
       </View>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Hábitos de hoje</Text>
         <Text style={styles.sectionCount}>
-          {completedHabits.length}/{dueHabits.length}
+          {summary.completedCount}/{summary.dueHabits.length}
         </Text>
       </View>
 
-      {dueHabits.length === 0 ? (
+      {summary.dueHabits.length === 0 ? (
         <View style={styles.emptyCard}>
+          <View style={styles.emptyIconWrap}>
+            <MaterialCommunityIcons name="weather-night" size={18} color={colors.primaryLight} />
+          </View>
           <Text style={styles.emptyTitle}>Sem hábitos para hoje</Text>
           <Text style={styles.emptyText}>Crie hábitos diários ou por dias específicos para vê-los aqui.</Text>
         </View>
       ) : (
-        dueHabits.map((habit) => {
-          const progressInfo = progressByHabitId.get(habit.id);
-
+        summary.dueHabits.map((item) => {
           return (
-            <View key={habit.id}>
+            <View key={item.habit.id}>
               <HabitCard
-                habit={habit}
-                checked={Boolean(progressInfo?.isComplete)}
+                habit={item.habit}
+                checked={item.isComplete}
                 dueToday
-                onPress={() => openProgressEditor(habit)}
-                progressLabel={progressInfo?.label}
-                progressValue={progressInfo?.percent}
+                onPress={() => openProgressEditor(item.habit)}
+                progressLabel={item.progressLabel}
+                progressValue={item.progressValue}
               />
             </View>
           );
@@ -130,15 +142,17 @@ export default function TodayScreen() {
 
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>Foco do dia</Text>
-        <Text style={styles.tipText}>Toque em um hábito para informar quanto você fez hoje.</Text>
+        <Text style={styles.tipText}>Toque em um hábito para informar quanto você fez hoje e adicionar uma nota opcional.</Text>
       </View>
 
-      <Modal visible={Boolean(selectedHabit)} transparent animationType="fade" onRequestClose={() => setSelectedHabit(null)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setSelectedHabit(null)}>
+      <Modal visible={Boolean(selectedHabit)} transparent animationType="fade" onRequestClose={closeProgressEditor}>
+        <Pressable style={styles.modalBackdrop} onPress={closeProgressEditor}>
           <Pressable style={styles.modalCard} onPress={() => null}>
+            <View style={styles.modalGlow} />
             <Text style={styles.modalKicker}>Progresso de hoje</Text>
             <Text style={styles.modalTitle}>{selectedHabit?.name}</Text>
-            <Text style={styles.modalSubtitle}>Digite a quantidade feita agora. Ex: 30 páginas, 1 sessão.</Text>
+            <Text style={styles.modalSubtitle}>Digite a quantidade feita agora e registre uma nota, se quiser.</Text>
+            <Text style={styles.modalFieldLabel}>Quantidade</Text>
             <TextInput
               value={progressInput}
               onChangeText={setProgressInput}
@@ -147,8 +161,18 @@ export default function TodayScreen() {
               placeholderTextColor={colors.textSecondary}
               keyboardType="numeric"
             />
+            <Text style={styles.modalFieldLabel}>Nota</Text>
+            <TextInput
+              value={noteInput}
+              onChangeText={setNoteInput}
+              style={[styles.modalInput, styles.modalNoteInput]}
+              placeholder="Nota opcional: como foi, contexto, dificuldade..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              textAlignVertical="top"
+            />
             <View style={styles.modalActions}>
-              <Pressable onPress={() => setSelectedHabit(null)} style={[styles.modalButton, styles.modalSecondaryButton]}>
+              <Pressable onPress={closeProgressEditor} style={[styles.modalButton, styles.modalSecondaryButton]}>
                 <Text style={styles.modalSecondaryText}>Cancelar</Text>
               </Pressable>
               <Pressable onPress={saveProgress} style={[styles.modalButton, styles.modalPrimaryButton]}>
@@ -172,29 +196,37 @@ const styles = StyleSheet.create({
   kicker: {
     color: colors.primaryLight,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontSize: 12,
-    marginBottom: 4,
+    letterSpacing: 1.8,
+    fontSize: 11,
+    marginBottom: 6,
+    fontWeight: '700',
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
+    letterSpacing: -0.6,
   },
   subtitle: {
     color: colors.textSecondary,
     marginTop: 4,
+    fontSize: 14,
   },
   dayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceGlass,
+    borderColor: colors.borderGlass,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: radius.md,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   dayBadgeText: {
     color: colors.textPrimary,
@@ -205,20 +237,30 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoutButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceGlass,
   },
   logoutText: {
-    color: colors.textSecondary,
-    fontWeight: '600',
+    color: colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 12,
   },
   progressCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceGlass,
+    borderColor: colors.borderGlass,
     borderWidth: 1,
     borderRadius: radius.xl,
     padding: spacing.xl,
     gap: spacing.md,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
   },
   progressRow: {
     flexDirection: 'row',
@@ -235,9 +277,31 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   progressValue: {
-    color: colors.primaryLight,
     fontSize: 28,
     fontWeight: '800',
+  },
+  quickPanel: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  quickPill: {
+    flex: 1,
+    backgroundColor: colors.surfaceGlass,
+    borderColor: colors.borderGlass,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 3,
+  },
+  quickPillValue: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  quickPillLabel: {
+    color: colors.textSecondary,
+    fontSize: 11,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -254,29 +318,51 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   emptyCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceGlass,
+    borderColor: colors.borderGlass,
     borderWidth: 1,
     borderRadius: radius.xl,
     padding: spacing.xl,
     gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 3,
+  },
+  emptyIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceGlassStrong,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+    marginBottom: 4,
   },
   emptyTitle: {
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
   emptyText: {
     color: colors.textSecondary,
     lineHeight: 20,
   },
   tipCard: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlassStrong,
     borderRadius: radius.lg,
     padding: spacing.lg,
     gap: 6,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   tipTitle: {
     color: colors.textPrimary,
@@ -293,12 +379,27 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   modalCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceGlassStrong,
     borderRadius: radius.xl,
-    borderColor: colors.border,
+    borderColor: colors.borderGlass,
     borderWidth: 1,
     padding: spacing.xl,
     gap: spacing.md,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 18 },
+    elevation: 5,
+  },
+  modalGlow: {
+    position: 'absolute',
+    top: -24,
+    right: -16,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: colors.glow,
   },
   modalKicker: {
     color: colors.primaryLight,
@@ -315,15 +416,25 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
   },
+  modalFieldLabel: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
   modalInput: {
-    backgroundColor: colors.surfaceElevated,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceGlass,
+    borderColor: colors.borderGlass,
     borderWidth: 1,
     borderRadius: radius.md,
     color: colors.textPrimary,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
     fontSize: 16,
+  },
+  modalNoteInput: {
+    minHeight: 92,
   },
   modalActions: {
     flexDirection: 'row',
@@ -338,7 +449,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   modalSecondaryButton: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceGlass,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   modalPrimaryButton: {
     backgroundColor: colors.primary,

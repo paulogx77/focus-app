@@ -1,5 +1,6 @@
-import type { AppStateSnapshot, HabitDraft } from '../types';
-import { initialState, LocalStoreRepository } from '../storage/LocalStoreRepository';
+import type { AppStateSnapshot, HabitDraft, UserProfile } from '../types';
+import { initialState, normalizeCheckIn, normalizeHabit, normalizeUser } from '../storage/AppStateStorage';
+import type { AppStateRepository } from '../storage/AppStateStorage';
 
 type StateSink = (state: AppStateSnapshot) => void;
 
@@ -7,7 +8,7 @@ export class AppStateManager {
   private state: AppStateSnapshot = initialState;
 
   public constructor(
-    private readonly repository: LocalStoreRepository,
+    private readonly repository: AppStateRepository,
     private readonly sink: StateSink
   ) {}
 
@@ -23,89 +24,152 @@ export class AppStateManager {
     return nextState;
   };
 
-  public signIn = async (name: string): Promise<AppStateSnapshot> => {
-    return this.commit((previous) => ({
-      ...previous,
-      user: { name },
-    }));
+  public signIn = async (user: UserProfile): Promise<AppStateSnapshot> => {
+    const nextUser = normalizeUser(user);
+    return this.commit(
+      (previous) => ({
+        ...previous,
+        user: nextUser,
+      }),
+      () => this.repository.saveUser(nextUser)
+    );
+  };
+
+  public updateProfile = async (user: Partial<UserProfile>): Promise<AppStateSnapshot> => {
+    const nextUser = normalizeUser(
+      this.state.user
+        ? {
+            ...this.state.user,
+            ...user,
+            name: user.name?.trim() || this.state.user.name,
+            email: user.email === undefined ? this.state.user.email : user.email?.trim() || undefined,
+            picture: user.picture === undefined ? this.state.user.picture : user.picture?.trim() || undefined,
+            focusGoal: user.focusGoal === undefined ? this.state.user.focusGoal : user.focusGoal?.trim() || undefined,
+            accentColor: user.accentColor === undefined ? this.state.user.accentColor : user.accentColor?.trim() || undefined,
+          }
+        : user.name
+          ? {
+              ...user,
+              name: String(user.name).trim(),
+              email: user.email?.trim() || undefined,
+              picture: user.picture?.trim() || undefined,
+              focusGoal: user.focusGoal?.trim() || undefined,
+              accentColor: user.accentColor?.trim() || undefined,
+            }
+          : null
+    );
+
+    return this.commit(
+      (previous) => ({
+        ...previous,
+        user: nextUser,
+      }),
+      () => this.repository.saveUser(nextUser)
+    );
   };
 
   public signOut = async (): Promise<AppStateSnapshot> => {
-    return this.commit((previous) => ({
-      ...previous,
-      user: null,
-    }));
+    return this.commit(
+      () => ({
+        user: null,
+        habits: [],
+        checkIns: [],
+      }),
+      () => this.repository.resetState()
+    );
   };
 
   public addHabit = async (habit: HabitDraft): Promise<AppStateSnapshot> => {
-    return this.commit((previous) => ({
-      ...previous,
-      habits: [
-        ...previous.habits,
-        {
-          id: this.nextId(previous.habits),
-          createdAt: new Date().toISOString(),
-          isActive: true,
-          ...habit,
-          goalValue: String(habit.goalValue ?? ''),
-        },
-      ],
-    }));
+    const nextHabit = normalizeHabit({
+      id: this.nextId(this.state.habits),
+      createdAt: new Date().toISOString(),
+      isActive: true,
+      ...habit,
+      goalValue: String(habit.goalValue ?? ''),
+    });
+
+    return this.commit(
+      (previous) => ({
+        ...previous,
+        habits: [...previous.habits, nextHabit],
+      }),
+      () => this.repository.upsertHabit(nextHabit)
+    );
   };
 
   public updateHabit = async (habitId: number, payload: Partial<HabitDraft>): Promise<AppStateSnapshot> => {
-    return this.commit((previous) => ({
-      ...previous,
-      habits: previous.habits.map((habit) =>
-        habit.id === habitId
-          ? {
-              ...habit,
-              ...payload,
-              goalValue: payload.goalValue === undefined ? habit.goalValue : String(payload.goalValue),
-            }
-          : habit
-      ),
-    }));
+    const currentHabit = this.state.habits.find((habit) => habit.id === habitId);
+    if (!currentHabit) {
+      return this.state;
+    }
+
+    const nextHabit = normalizeHabit({
+      ...currentHabit,
+      ...payload,
+      goalValue: payload.goalValue === undefined ? currentHabit.goalValue : String(payload.goalValue),
+    });
+
+    return this.commit(
+      (previous) => ({
+        ...previous,
+        habits: previous.habits.map((habit) => (habit.id === habitId ? nextHabit : habit)),
+      }),
+      () => this.repository.upsertHabit(nextHabit)
+    );
   };
 
   public toggleHabitActive = async (habitId: number): Promise<AppStateSnapshot> => {
-    return this.commit((previous) => ({
-      ...previous,
-      habits: previous.habits.map((habit) => (habit.id === habitId ? { ...habit, isActive: !habit.isActive } : habit)),
-    }));
+    const currentHabit = this.state.habits.find((habit) => habit.id === habitId);
+    if (!currentHabit) {
+      return this.state;
+    }
+
+    const nextHabit = normalizeHabit({ ...currentHabit, isActive: !currentHabit.isActive });
+
+    return this.commit(
+      (previous) => ({
+        ...previous,
+        habits: previous.habits.map((habit) => (habit.id === habitId ? nextHabit : habit)),
+      }),
+      () => this.repository.upsertHabit(nextHabit)
+    );
   };
 
   public deleteHabit = async (habitId: number): Promise<AppStateSnapshot> => {
-    return this.commit((previous) => ({
-      ...previous,
-      habits: previous.habits.filter((habit) => habit.id !== habitId),
-      checkIns: previous.checkIns.filter((checkIn) => checkIn.habitId !== habitId),
-    }));
+    return this.commit(
+      (previous) => ({
+        ...previous,
+        habits: previous.habits.filter((habit) => habit.id !== habitId),
+      }),
+      () => this.repository.deleteHabit(habitId)
+    );
   };
 
-  public toggleCheckIn = async (habitId: number, date = this.todayString(), value?: number): Promise<AppStateSnapshot> => {
+  public toggleCheckIn = async (habitId: number, date = this.todayString(), value?: number, note?: string): Promise<AppStateSnapshot> => {
     return this.commit((previous) => {
       const index = previous.checkIns.findIndex((checkIn) => checkIn.habitId === habitId && checkIn.date === date);
       const normalizedValue = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : undefined;
+      const trimmedNote = note?.trim();
+      const habit = previous.habits.find((item) => item.id === habitId);
 
       if (normalizedValue === undefined) {
         const exists = index >= 0;
+        const nextCheckIn = normalizeCheckIn({
+          id: this.nextId(previous.checkIns),
+          habitId,
+          habitName: habit?.name,
+          habitColor: habit?.color,
+          date,
+          value: 1,
+          note: trimmedNote ?? '',
+          createdAt: new Date().toISOString(),
+        });
 
         return {
           ...previous,
           checkIns: exists
             ? previous.checkIns.filter((checkIn) => !(checkIn.habitId === habitId && checkIn.date === date))
-            : [
-                ...previous.checkIns,
-                {
-                  id: this.nextId(previous.checkIns),
-                  habitId,
-                  date,
-                  value: 1,
-                  note: '',
-                  createdAt: new Date().toISOString(),
-                },
-              ],
+            : [...previous.checkIns, nextCheckIn],
         };
       }
 
@@ -116,34 +180,73 @@ export class AppStateManager {
         };
       }
 
-      const nextCheckIn = {
+      const nextCheckIn = normalizeCheckIn({
         id: index >= 0 ? previous.checkIns[index].id : this.nextId(previous.checkIns),
         habitId,
+        habitName: habit?.name ?? previous.checkIns[index]?.habitName,
+        habitColor: habit?.color ?? previous.checkIns[index]?.habitColor,
         date,
         value: normalizedValue,
-        note: '',
+        note: trimmedNote ?? previous.checkIns[index]?.note ?? '',
         createdAt: index >= 0 ? previous.checkIns[index].createdAt : new Date().toISOString(),
-      };
+      });
 
       return {
         ...previous,
         checkIns: index >= 0 ? previous.checkIns.map((checkIn, currentIndex) => (currentIndex === index ? nextCheckIn : checkIn)) : [...previous.checkIns, nextCheckIn],
       };
+    }, async (nextState, previousState) => {
+      const previousCheckIn = previousState.checkIns.find((checkIn) => checkIn.habitId === habitId && checkIn.date === date);
+      const nextCheckIn = nextState.checkIns.find((checkIn) => checkIn.habitId === habitId && checkIn.date === date);
+
+      if (!nextCheckIn && previousCheckIn) {
+        await this.repository.deleteCheckIn(habitId, date);
+        return;
+      }
+
+      if (nextCheckIn) {
+        await this.repository.upsertCheckIn(nextCheckIn);
+      }
     });
   };
 
   public resetCheckIns = async (): Promise<AppStateSnapshot> => {
-    return this.commit((previous) => ({
-      ...previous,
-      checkIns: [],
-    }));
+    return this.commit(
+      (previous) => ({
+        ...previous,
+        checkIns: [],
+      }),
+      () => this.repository.replaceCheckIns([])
+    );
   };
 
-  private async commit(updater: (state: AppStateSnapshot) => AppStateSnapshot): Promise<AppStateSnapshot> {
-    const nextState = updater(this.state);
+  public getHistorySections = async () => {
+    return this.repository.getHistorySections();
+  };
+
+  public getDashboardMetrics = async () => {
+    return this.repository.getDashboardMetrics();
+  };
+
+  public getTodaySummary = async (date?: string) => {
+    return this.repository.getTodaySummary(date);
+  };
+
+  private async commit(
+    updater: (state: AppStateSnapshot) => AppStateSnapshot,
+    persist?: (nextState: AppStateSnapshot, previousState: AppStateSnapshot) => Promise<void>
+  ): Promise<AppStateSnapshot> {
+    const previousState = this.state;
+    const nextState = updater(previousState);
     this.state = nextState;
     this.sink(nextState);
-    await this.repository.saveState(nextState);
+
+    if (persist) {
+      await persist(nextState, previousState);
+    } else {
+      await this.repository.saveState(nextState);
+    }
+
     return nextState;
   }
 

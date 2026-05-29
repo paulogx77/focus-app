@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { AppStateManager } from '../state/AppStateManager';
-import { initialState, LocalStoreRepository } from '../storage/LocalStoreRepository';
+import { createAppStateRepository } from '../storage/createAppStateRepository';
+import { initialState } from '../storage/AppStateStorage';
 import type { AppStateContextValue, AppStateSnapshot } from '../types';
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(undefined);
@@ -11,14 +12,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppStateSnapshot>(initialState);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const repository = useMemo(() => new LocalStoreRepository(), []);
+  const repository = useMemo(() => createAppStateRepository(), []);
   const manager = useMemo(() => new AppStateManager(repository, setState), [repository]);
 
   useEffect(() => {
     let mounted = true;
 
     (async () => {
-      await manager.hydrate();
+      try {
+        await manager.hydrate();
+      } catch (error) {
+        console.error('Failed to hydrate app state', error);
+      }
+
       if (mounted) {
         setIsHydrated(true);
       }
@@ -34,6 +40,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       ...state,
       isHydrated,
       signIn: manager.signIn,
+      updateProfile: manager.updateProfile,
       signOut: manager.signOut,
       addHabit: manager.addHabit,
       updateHabit: manager.updateHabit,
@@ -42,6 +49,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       toggleCheckIn: manager.toggleCheckIn,
       resetCheckIns: manager.resetCheckIns,
       setState: manager.replaceState,
+      getHistorySections: manager.getHistorySections,
+      getDashboardMetrics: manager.getDashboardMetrics,
+      getTodaySummary: manager.getTodaySummary,
     }),
     [state, isHydrated, manager]
   );

@@ -8,7 +8,7 @@ type ProgressBarProps = {
   fillColor?: string;
 };
 
-export default function ProgressBar({ value = 0, trackColor = colors.surfaceElevated, fillColor = colors.primary }: ProgressBarProps) {
+export default function ProgressBar({ value = 0, trackColor = colors.surfaceGlassStrong, fillColor = colors.primary }: ProgressBarProps) {
   const safeValue = Math.max(0, Math.min(1, value));
 
   return (
@@ -23,6 +23,8 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: radius.xl,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   fill: {
     height: '100%',
