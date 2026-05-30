@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { categories, colorOptions, frequencyOptions, goalUnits, iconOptions, weekdayOptions } from '../data/options';
 import { useAppState } from '../context/AppStateContext';
@@ -39,6 +40,7 @@ export default function AddHabitScreen({ navigation, route }: Props) {
   const [form, setForm] = useState<HabitForm>(initialForm);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const habitId = route.params?.habitId;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!habitId) {
@@ -116,113 +118,126 @@ export default function AddHabitScreen({ navigation, route }: Props) {
   const showSpecificDays = form.frequency === 'specific_days';
 
   return (
-    <ScrollView style={styles.safe} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Text style={styles.kicker}>{editingHabit ? 'Editar hábito' : 'Novo hábito'}</Text>
-        <Text style={styles.title}>Configuração detalhada</Text>
-        <Text style={styles.subtitle}>Defina aparência, frequência, metas e dias de execução.</Text>
-      </View>
+    <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView
+        style={styles.safe}
+        contentContainerStyle={[styles.container, { paddingBottom: Math.max(96, insets.bottom + 72) }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <Text style={styles.kicker}>{editingHabit ? 'Editar hábito' : 'Novo hábito'}</Text>
+          <Text style={styles.title}>Configuração detalhada</Text>
+          <Text style={styles.subtitle}>Defina aparência, frequência, metas e dias de execução.</Text>
+        </View>
 
-      <View style={styles.card}>
-        <View style={[styles.previewCard, { borderColor: `${form.color}66`, backgroundColor: `${form.color}14` }]}>
-          <View style={styles.previewLeft}>
-            <Text style={styles.previewKicker}>Preview</Text>
-            <Text style={styles.previewTitle}>{form.name.trim() || 'Novo hábito'}</Text>
-            <Text style={styles.previewMeta}>{form.category} • {form.frequency === 'daily' ? 'Diário' : 'Dias específicos'}</Text>
+        <View style={styles.card}>
+          <View style={[styles.previewCard, { borderColor: `${form.color}66`, backgroundColor: `${form.color}14` }]}>
+            <View style={styles.previewLeft}>
+              <Text style={styles.previewKicker}>Preview</Text>
+              <Text style={styles.previewTitle}>{form.name.trim() || 'Novo hábito'}</Text>
+              <Text style={styles.previewMeta}>{form.category} • {form.frequency === 'daily' ? 'Diário' : 'Dias específicos'}</Text>
+            </View>
+            <View style={[styles.previewDot, { backgroundColor: form.color }]} />
           </View>
-          <View style={[styles.previewDot, { backgroundColor: form.color }]} />
-        </View>
 
-        <Text style={styles.label}>Nome</Text>
-        <TextInput value={form.name} onChangeText={(value) => setField('name', value)} style={styles.input} placeholder="Ex: Ler 20 minutos" placeholderTextColor={colors.textSecondary} />
+          <Text style={styles.label}>Nome</Text>
+          <TextInput
+            value={form.name}
+            onChangeText={(value) => setField('name', value)}
+            style={styles.input}
+            placeholder="Ex: Ler 20 minutos"
+            placeholderTextColor={colors.textSecondary}
+          />
 
-        <Text style={styles.label}>Descrição</Text>
-        <TextInput
-          value={form.description}
-          onChangeText={(value) => setField('description', value)}
-          style={[styles.input, styles.textArea]}
-          multiline
-          placeholder="Detalhe o contexto do hábito"
-          placeholderTextColor={colors.textSecondary}
-        />
+          <Text style={styles.label}>Descrição</Text>
+          <TextInput
+            value={form.description}
+            onChangeText={(value) => setField('description', value)}
+            style={[styles.input, styles.textArea]}
+            multiline
+            placeholder="Detalhe o contexto do hábito"
+            placeholderTextColor={colors.textSecondary}
+          />
 
-        <Text style={styles.label}>Categoria</Text>
-        <View style={styles.wrapRow}>
-          {categories.map((item) => (
-            <Pressable key={item} onPress={() => setField('category', item)} style={[styles.chip, form.category === item && styles.chipSelected]}>
-              <Text style={styles.chipText}>{item}</Text>
-            </Pressable>
-          ))}
-        </View>
+          <Text style={styles.label}>Categoria</Text>
+          <View style={styles.wrapRow}>
+            {categories.map((item) => (
+              <Pressable key={item} onPress={() => setField('category', item)} style={[styles.chip, form.category === item && styles.chipSelected]}>
+                <Text style={styles.chipText}>{item}</Text>
+              </Pressable>
+            ))}
+          </View>
 
-        <Text style={styles.label}>Frequência</Text>
-        <View style={styles.columnGap}>
-          {frequencyOptions.map((option) => (
-            <Pressable key={option.value} onPress={() => setField('frequency', option.value)} style={[styles.optionCard, form.frequency === option.value && styles.optionCardSelected]}>
-              <Text style={styles.optionTitle}>{option.label}</Text>
-              <Text style={styles.optionSubtitle}>{option.description}</Text>
-            </Pressable>
-          ))}
-        </View>
+          <Text style={styles.label}>Frequência</Text>
+          <View style={styles.columnGap}>
+            {frequencyOptions.map((option) => (
+              <Pressable key={option.value} onPress={() => setField('frequency', option.value)} style={[styles.optionCard, form.frequency === option.value && styles.optionCardSelected]}>
+                <Text style={styles.optionTitle}>{option.label}</Text>
+                <Text style={styles.optionSubtitle}>{option.description}</Text>
+              </Pressable>
+            ))}
+          </View>
 
-        {showSpecificDays ? (
-          <View>
-            <Text style={styles.label}>Dias específicos</Text>
-            <View style={styles.weekRow}>
-              {weekdayOptions.map((day) => (
-                <Pressable key={day.value} onPress={() => toggleDay(day.value)} style={[styles.weekChip, form.daysOfWeek.includes(day.value) && styles.weekChipSelected]}>
-                  <Text style={styles.weekText}>{day.label}</Text>
+          {showSpecificDays ? (
+            <View>
+              <Text style={styles.label}>Dias específicos</Text>
+              <View style={styles.weekRow}>
+                {weekdayOptions.map((day) => (
+                  <Pressable key={day.value} onPress={() => toggleDay(day.value)} style={[styles.weekChip, form.daysOfWeek.includes(day.value) && styles.weekChipSelected]}>
+                    <Text style={styles.weekText}>{day.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          <Text style={styles.label}>Meta diária</Text>
+          <View style={styles.goalRow}>
+            <TextInput
+              value={String(form.goalValue)}
+              onChangeText={(value) => setField('goalValue', value.replace(/[^0-9.,]/g, ''))}
+              style={[styles.input, styles.goalInput]}
+              placeholder="20"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="numeric"
+            />
+            <View style={styles.unitWrap}>
+              {goalUnits.map((unit) => (
+                <Pressable key={unit} onPress={() => setField('goalUnit', unit)} style={[styles.unitChip, form.goalUnit === unit && styles.unitChipSelected]}>
+                  <Text style={styles.unitText}>{unit}</Text>
                 </Pressable>
               ))}
             </View>
           </View>
-        ) : null}
 
-        <Text style={styles.label}>Meta diária</Text>
-        <View style={styles.goalRow}>
-          <TextInput
-            value={String(form.goalValue)}
-            onChangeText={(value) => setField('goalValue', value.replace(/[^0-9.,]/g, ''))}
-            style={[styles.input, styles.goalInput]}
-            placeholder="20"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType="numeric"
-          />
-          <View style={styles.unitWrap}>
-            {goalUnits.map((unit) => (
-              <Pressable key={unit} onPress={() => setField('goalUnit', unit)} style={[styles.unitChip, form.goalUnit === unit && styles.unitChipSelected]}>
-                <Text style={styles.unitText}>{unit}</Text>
+          <Text style={styles.label}>Ícone</Text>
+          <View style={styles.iconGrid}>
+            {iconOptions.map((icon) => (
+              <Pressable key={icon.value} onPress={() => setField('icon', icon.value)} style={[styles.iconOption, form.icon === icon.value && styles.iconOptionSelected]}>
+                <MaterialCommunityIcons name={icon.value as never} size={22} color={form.icon === icon.value ? colors.primaryLight : colors.textSecondary} />
               </Pressable>
             ))}
           </View>
-        </View>
 
-        <Text style={styles.label}>Ícone</Text>
-        <View style={styles.iconGrid}>
-          {iconOptions.map((icon) => (
-            <Pressable key={icon.value} onPress={() => setField('icon', icon.value)} style={[styles.iconOption, form.icon === icon.value && styles.iconOptionSelected]}>
-              <MaterialCommunityIcons name={icon.value as never} size={22} color={form.icon === icon.value ? colors.primaryLight : colors.textSecondary} />
+          <Text style={styles.label}>Cor do card</Text>
+          <View style={styles.colorRow}>
+            {colorOptions.map((color) => (
+              <Pressable key={color} onPress={() => setField('color', color)} style={[styles.colorDot, { backgroundColor: color }, form.color === color && styles.colorDotSelected]} />
+            ))}
+          </View>
+
+          <View style={styles.actions}>
+            <Pressable onPress={() => navigation.goBack()} style={[styles.button, styles.secondaryButton]}>
+              <Text style={styles.secondaryButtonText}>Cancelar</Text>
             </Pressable>
-          ))}
+            <Pressable onPress={handleSave} style={[styles.button, styles.primaryButton]}>
+              <Text style={styles.primaryButtonText}>Salvar hábito</Text>
+            </Pressable>
+          </View>
         </View>
-
-        <Text style={styles.label}>Cor do card</Text>
-        <View style={styles.colorRow}>
-          {colorOptions.map((color) => (
-            <Pressable key={color} onPress={() => setField('color', color)} style={[styles.colorDot, { backgroundColor: color }, form.color === color && styles.colorDotSelected]} />
-          ))}
-        </View>
-
-        <View style={styles.actions}>
-          <Pressable onPress={() => navigation.goBack()} style={[styles.button, styles.secondaryButton]}>
-            <Text style={styles.secondaryButtonText}>Cancelar</Text>
-          </Pressable>
-          <Pressable onPress={handleSave} style={[styles.button, styles.primaryButton]}>
-            <Text style={styles.primaryButtonText}>Salvar hábito</Text>
-          </Pressable>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
