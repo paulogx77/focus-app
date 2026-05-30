@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model RemoteUser {
+  id               String   @id
+  name             String
+  email            String?
+  picture          String?
+  provider         String?
+  focusGoal        String?
+  accentColor      String?
+  notificationsOn  Boolean  @default(false)
+  visualPreference String   @default("glass")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lastSyncedAt     DateTime?
+  habits           Habit[]
+  checkIns         CheckIn[]
+  syncEvents       SyncEvent[]
+}
+
+model Habit {
+  id          String   @id @default(cuid())
+  userId      String
+  clientId    Int
+  name        String
+  description String
+  icon        String
+  category    String
+  frequency   String
+  daysOfWeek  String
+  goalValue   String
+  goalUnit    String
+  color       String
+  isActive    Boolean
+  createdAt   DateTime
+  updatedAt   DateTime @updatedAt
+  user        RemoteUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientId])
+}
+
+model CheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  clientId    Int
+  habitId     Int
+  habitName   String?
+  habitColor  String?
+  date        String
+  value       Float
+  note        String
+  createdAt   DateTime
+  updatedAt   DateTime @updatedAt
+  user        RemoteUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientId])
+  @@unique([userId, habitId, date])
+}
+
+model SyncEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  receivedAt    DateTime @default(now())
+  habitsCount   Int
+  checkInsCount Int
+  user          RemoteUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

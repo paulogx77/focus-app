@@ -21,7 +21,7 @@ const VISUAL_PREFERENCES = [
 ] as const;
 
 export default function ProfileScreen() {
-  const { user, updateProfile, signOut } = useAppState();
+  const { user, syncNow, syncStatus, updateProfile, signOut } = useAppState();
 
   const [name, setName] = useState(user?.name ?? '');
   const [focusGoal, setFocusGoal] = useState(user?.focusGoal ?? '');
@@ -59,6 +59,34 @@ export default function ProfileScreen() {
       visualPreference,
     });
     Alert.alert('Perfil atualizado', 'As alterações foram salvas.');
+  }
+
+  function getSyncMessage() {
+    if (!syncStatus.syncEnabled) {
+      return 'Sincronizacao remota desativada. Configure a URL da API em app.json para enviar os dados.';
+    }
+
+    if (syncStatus.isSyncing) {
+      return 'Sincronizando seus dados com a API externa.';
+    }
+
+    if (!syncStatus.isOnline) {
+      return 'Sem internet no momento. O app continua salvando offline e envia quando a conexao voltar.';
+    }
+
+    if (syncStatus.lastSyncError) {
+      return `Falha na ultima sincronizacao: ${syncStatus.lastSyncError}`;
+    }
+
+    if (syncStatus.hasPendingChanges) {
+      return 'Existem alteracoes locais pendentes de sincronizacao.';
+    }
+
+    if (syncStatus.lastSyncedAt) {
+      return `Ultima sincronizacao: ${new Date(syncStatus.lastSyncedAt).toLocaleString('pt-BR')}`;
+    }
+
+    return 'Nenhuma sincronizacao remota foi feita ainda.';
   }
 
   return (
@@ -120,6 +148,21 @@ export default function ProfileScreen() {
               color={colors.textSecondary}
             />
           </View>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Sincronizacao</Text>
+          <View style={styles.preferenceRow}>
+            <View style={styles.preferenceCopy}>
+              <Text style={styles.preferenceTitle}>{syncStatus.isOnline ? 'Online' : 'Offline'}</Text>
+              <Text style={styles.preferenceDescription}>{getSyncMessage()}</Text>
+            </View>
+            <MaterialCommunityIcons name={syncStatus.isOnline ? 'cloud-check-outline' : 'cloud-off-outline'} size={20} color={syncStatus.isOnline ? accentColor : colors.textSecondary} />
+          </View>
+          <Pressable onPress={() => void syncNow()} disabled={!syncStatus.syncEnabled || syncStatus.isSyncing || !syncStatus.isOnline} style={[styles.button, styles.secondaryButton, styles.syncButton, (!syncStatus.syncEnabled || syncStatus.isSyncing || !syncStatus.isOnline) && styles.buttonDisabled]}>
+            <MaterialCommunityIcons name="cloud-sync-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.secondaryButtonText}>{syncStatus.isSyncing ? 'Sincronizando...' : 'Sincronizar agora'}</Text>
+          </Pressable>
         </View>
 
         <View style={styles.field}>
@@ -375,6 +418,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceGlassStrong,
     borderWidth: 1,
     borderColor: colors.borderGlass,
+  },
+  syncButton: {
+    marginTop: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.55,
   },
   primaryButtonText: {
     color: colors.textPrimary,

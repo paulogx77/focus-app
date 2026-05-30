@@ -1,4 +1,5 @@
 import type { AppStateSnapshot, CheckIn, DashboardMetrics, Habit, HistorySection, TodaySummary, UserProfile } from '../types';
+import { createClientId } from '../utils/id';
 
 export type AppStateRepository = {
   loadState: () => Promise<AppStateSnapshot>;
@@ -69,7 +70,7 @@ export function normalizeUser(user: unknown): UserProfile | null {
 
   if (typeof user === 'string') {
     const name = user.trim();
-    return name ? { name, provider: 'local' } : null;
+    return name ? { syncId: createClientId('user'), name, provider: 'local' } : null;
   }
 
   if (typeof user === 'object' && 'name' in user) {
@@ -81,6 +82,7 @@ export function normalizeUser(user: unknown): UserProfile | null {
     }
 
     return {
+      syncId: String(source.syncId ?? '').trim() || createClientId('user'),
       name,
       email: String(source.email ?? '').trim() || undefined,
       picture: String(source.picture ?? '').trim() || undefined,

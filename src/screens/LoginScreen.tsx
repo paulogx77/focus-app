@@ -123,6 +123,7 @@ export default function LoginScreen() {
       const data = await result.json();
 
       await signIn({
+        syncId: String(data.sub ?? '').trim() ? `google:${String(data.sub).trim()}` : undefined,
         name: String(data.name ?? data.given_name ?? 'Usuario').trim(),
         email: String(data.email ?? '').trim() || undefined,
         picture: String(data.picture ?? '').trim() || undefined,

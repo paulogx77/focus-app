@@ -1,0 +1,27 @@
+{
+  "name": "focus-sync-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "pnpm prisma:generate && pnpm prisma:push",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:validate": "prisma validate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "dotenv": "^17.2.3",
+    "fastify": "^5.3.3",
+    "zod": "^3.25.56"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.1",
+    "prisma": "^6.9.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.9.2"
+  }
+}

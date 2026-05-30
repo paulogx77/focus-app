@@ -7,6 +7,7 @@ import { addDays, formatShortDate, getRelativeLabel, startOfWeek, todayString } 
 import { getCheckInForHabitDate, getHabitProgress } from '../utils/habitProgress';
 
 type UserRow = {
+  sync_id: string | null;
   name: string;
   email: string | null;
   picture: string | null;
@@ -47,7 +48,7 @@ type CheckInRow = {
 };
 
 const DATABASE_NAME = 'focus.db';
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 export class SqliteStoreRepository implements AppStateRepository {
   private dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -71,8 +72,9 @@ export class SqliteStoreRepository implements AppStateRepository {
         const now = new Date().toISOString();
         await db.runAsync(
           `INSERT INTO user_profile (
-            id, name, email, picture, provider, focus_goal, accent_color, notifications_enabled, visual_preference, updated_at
-          ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, sync_id, name, email, picture, provider, focus_goal, accent_color, notifications_enabled, visual_preference, updated_at
+          ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          normalized.user.syncId ?? null,
           normalized.user.name,
           normalized.user.email ?? null,
           normalized.user.picture ?? null,
@@ -146,8 +148,9 @@ export class SqliteStoreRepository implements AppStateRepository {
 
     await db.runAsync(
       `INSERT INTO user_profile (
-        id, name, email, picture, provider, focus_goal, accent_color, notifications_enabled, visual_preference, updated_at
-      ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, sync_id, name, email, picture, provider, focus_goal, accent_color, notifications_enabled, visual_preference, updated_at
+      ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      normalizedUser.syncId ?? null,
       normalizedUser.name,
       normalizedUser.email ?? null,
       normalizedUser.picture ?? null,
@@ -381,6 +384,7 @@ export class SqliteStoreRepository implements AppStateRepository {
       await db.execAsync(`
         CREATE TABLE IF NOT EXISTS user_profile (
           id INTEGER PRIMARY KEY NOT NULL,
+          sync_id TEXT,
           name TEXT NOT NULL,
           email TEXT,
           picture TEXT,
@@ -439,6 +443,15 @@ export class SqliteStoreRepository implements AppStateRepository {
       `);
     }
 
+    if (currentVersion < 3) {
+      await db.execAsync('ALTER TABLE user_profile ADD COLUMN sync_id TEXT;').catch(() => null);
+      await db.execAsync(`
+        UPDATE user_profile
+        SET sync_id = COALESCE(sync_id, 'legacy-' || LOWER(REPLACE(COALESCE(email, name), ' ', '-')))
+        WHERE id = 1;
+      `).catch(() => null);
+    }
+
     await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
 
     return db;
@@ -452,6 +465,7 @@ export class SqliteStoreRepository implements AppStateRepository {
     return normalizeState({
       user: user
         ? {
+            syncId: user.sync_id ?? `legacy-${String(user.email ?? user.name).trim().toLowerCase().replace(/\s+/g, '-')}`,
             name: user.name,
             email: user.email ?? undefined,
             picture: user.picture ?? undefined,

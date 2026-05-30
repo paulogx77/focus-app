@@ -1,6 +1,7 @@
 export type Frequency = 'daily' | 'specific_days';
 
 export type UserProfile = {
+  syncId?: string;
   name: string;
   email?: string;
   picture?: string;
@@ -45,6 +46,15 @@ export type AppStateSnapshot = {
   user: UserProfile | null;
   habits: Habit[];
   checkIns: CheckIn[];
+};
+
+export type SyncStatus = {
+  isOnline: boolean;
+  isSyncing: boolean;
+  syncEnabled: boolean;
+  hasPendingChanges: boolean;
+  lastSyncedAt?: string;
+  lastSyncError?: string;
 };
 
 export type HistorySectionItem = CheckIn & {
@@ -104,7 +114,9 @@ export type BottomTabParamList = {
 
 export type AppStateContextValue = AppStateSnapshot & {
   isHydrated: boolean;
+  syncStatus: SyncStatus;
   signIn: (user: UserProfile) => Promise<AppStateSnapshot>;
+  syncNow: () => Promise<void>;
   updateProfile: (user: Partial<UserProfile>) => Promise<AppStateSnapshot>;
   signOut: () => Promise<AppStateSnapshot>;
   addHabit: (habit: HabitDraft) => Promise<AppStateSnapshot>;
