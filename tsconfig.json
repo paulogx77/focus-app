@@ -6,6 +6,11 @@
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    "moduleSuffixes": [
+      ".native",
+      ".web",
+      ""
+    ],
     "baseUrl": "."
   },
   "include": [

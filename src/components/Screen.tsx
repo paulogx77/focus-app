@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { NativeScrollEvent, NativeSyntheticEvent, StyleProp, ViewStyle } from 'react-native';
+
+import { useBottomDock } from '../navigation/BottomDockContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '../theme';
@@ -13,6 +16,19 @@ type ScreenProps = {
 };
 
 export default function Screen({ children, scroll = false, contentStyle, style }: ScreenProps) {
+  const bottomDock = useBottomDock();
+
+  useEffect(() => {
+    return () => bottomDock?.setHidden(false);
+  }, [bottomDock?.setHidden]);
+
+  function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const canScroll = contentSize.height > layoutMeasurement.height + 24;
+    const isAtBottom = canScroll && contentOffset.y >= contentSize.height - layoutMeasurement.height - 24;
+    bottomDock?.setHidden(isAtBottom);
+  }
+
   return (
     <SafeAreaView style={[styles.safeArea, style]}>
       <View pointerEvents="none" style={styles.backgroundLayer}>
@@ -25,7 +41,7 @@ export default function Screen({ children, scroll = false, contentStyle, style }
       </View>
 
       {scroll ? (
-        <ScrollView style={[styles.container, contentStyle]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.container, contentStyle]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16}>
           {children}
         </ScrollView>
       ) : (
@@ -105,7 +121,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 144,
     gap: spacing.lg,
   },
 });

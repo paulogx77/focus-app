@@ -5,7 +5,7 @@ export type UserProfile = {
   name: string;
   email?: string;
   picture?: string;
-  provider?: 'google' | 'local';
+  provider?: 'local';
   focusGoal?: string;
   accentColor?: string;
   notificationsEnabled?: boolean;
@@ -53,6 +53,7 @@ export type SyncStatus = {
   isSyncing: boolean;
   syncEnabled: boolean;
   hasPendingChanges: boolean;
+  hasConflict: boolean;
   lastSyncedAt?: string;
   lastSyncError?: string;
 };
@@ -116,7 +117,10 @@ export type AppStateContextValue = AppStateSnapshot & {
   isHydrated: boolean;
   syncStatus: SyncStatus;
   signIn: (user: UserProfile) => Promise<AppStateSnapshot>;
+  authenticateLocal: (mode: 'login' | 'register', credentials: { username: string; password: string; name?: string }) => Promise<AppStateSnapshot>;
   syncNow: () => Promise<void>;
+  restoreRemoteState: () => Promise<boolean>;
+  loadDemoData: () => Promise<AppStateSnapshot>;
   updateProfile: (user: Partial<UserProfile>) => Promise<AppStateSnapshot>;
   signOut: () => Promise<AppStateSnapshot>;
   addHabit: (habit: HabitDraft) => Promise<AppStateSnapshot>;

@@ -23,6 +23,25 @@ model RemoteUser {
   habits           Habit[]
   checkIns         CheckIn[]
   syncEvents       SyncEvent[]
+  credentials      Credential?
+  accessTokens     AccessToken[]
+}
+
+model Credential {
+  userId       String @id
+  username     String @unique
+  passwordHash String
+  user         RemoteUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AccessToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  revokedAt  DateTime?
+  user      RemoteUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Habit {

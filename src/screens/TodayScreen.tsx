@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 import HabitCard from '../components/HabitCard';
 import ProgressBar from '../components/ProgressBar';
@@ -90,12 +91,13 @@ export default function TodayScreen() {
           <Text style={styles.quickPillLabel}>concluídos hoje</Text>
         </View>
         <View style={styles.quickPill}>
-          <Text style={styles.quickPillValue}>{user?.provider === 'google' ? 'Google' : 'Local'}</Text>
+          <Text style={styles.quickPillValue}>Local</Text>
           <Text style={styles.quickPillLabel}>sessão ativa</Text>
         </View>
       </View>
 
       <View style={styles.progressCard}>
+        <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <View style={styles.progressRow}>
           <View>
             <Text style={styles.progressTitle}>Progresso do dia</Text>
@@ -250,6 +252,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   progressCard: {
+    overflow: 'hidden',
     backgroundColor: colors.surfaceGlass,
     borderColor: colors.borderGlass,
     borderWidth: 1,

@@ -11,7 +11,7 @@ type UserRow = {
   name: string;
   email: string | null;
   picture: string | null;
-  provider: 'google' | 'local' | null;
+  provider: 'local' | null;
   focus_goal: string | null;
   accent_color: string | null;
   notifications_enabled: number | null;
@@ -469,7 +469,7 @@ export class SqliteStoreRepository implements AppStateRepository {
             name: user.name,
             email: user.email ?? undefined,
             picture: user.picture ?? undefined,
-            provider: user.provider ?? 'local',
+            provider: 'local',
             focusGoal: user.focus_goal ?? undefined,
             accentColor: user.accent_color ?? undefined,
             notificationsEnabled: user.notifications_enabled !== 0,

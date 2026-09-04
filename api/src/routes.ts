@@ -1,10 +1,92 @@
 import type { FastifyInstance } from 'fastify';
+import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 
 import { prisma } from './db.js';
-import { syncRequestSchema } from './schemas.js';
+import { credentialsSchema, registerSchema, syncRequestSchema } from './schemas.js';
+
+const scrypt = promisify(scryptCallback);
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString('hex');
+  const hash = (await scrypt(password, salt, 64)) as Buffer;
+  return `${salt}:${hash.toString('hex')}`;
+}
+
+async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  const [salt, expected] = storedHash.split(':');
+  if (!salt || !expected) return false;
+  const actual = (await scrypt(password, salt, 64)) as Buffer;
+  return timingSafeEqual(actual, Buffer.from(expected, 'hex'));
+}
+
+const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+
+async function issueSession(user: { id: string; name: string }, tx = prisma) {
+  const token = randomBytes(32).toString('base64url');
+  await tx.accessToken.create({ data: { userId: user.id, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + SESSION_DURATION_MS) } });
+  return { token, user: { syncId: user.id, name: user.name, provider: 'local' as const } };
+}
+
+async function requireUserId(request: { headers: { authorization?: string } }, reply: { code: (statusCode: number) => { send: (payload: unknown) => unknown } }) {
+  const token = request.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+  if (!token) return reply.code(401).send({ message: 'Authentication required' });
+
+  const session = await prisma.accessToken.findFirst({
+    where: { tokenHash: hashToken(token), revokedAt: null, expiresAt: { gt: new Date() } },
+    select: { userId: true },
+  });
+  if (!session) return reply.code(401).send({ message: 'Invalid session' });
+  return session.userId;
+}
 
 export function registerRoutes(app: FastifyInstance) {
   app.get('/health', async () => ({ status: 'ok' }));
+
+  app.post('/v1/auth/register', async (request, reply) => {
+    const parsed = registerSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ message: 'Invalid registration data', issues: parsed.error.flatten() });
+
+    const existing = await prisma.credential.findUnique({ where: { username: parsed.data.username } });
+    if (existing) return reply.code(409).send({ message: 'Username already exists' });
+
+    const user = await prisma.remoteUser.create({
+      data: {
+        id: randomUUID(),
+        name: parsed.data.name,
+        provider: 'local',
+        credentials: { create: { username: parsed.data.username, passwordHash: await hashPassword(parsed.data.password) } },
+      },
+    });
+    return reply.code(201).send(await issueSession(user));
+  });
+
+  app.post('/v1/auth/login', async (request, reply) => {
+    const parsed = credentialsSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ message: 'Invalid login data' });
+
+    const credential = await prisma.credential.findUnique({ where: { username: parsed.data.username }, include: { user: true } });
+    if (!credential || !(await verifyPassword(parsed.data.password, credential.passwordHash))) {
+      return reply.code(401).send({ message: 'Invalid username or password' });
+    }
+
+    return reply.send(await issueSession(credential.user));
+  });
+
+  app.post('/v1/auth/logout', async (request, reply) => {
+    const token = request.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (!token) return reply.code(401).send({ message: 'Authentication required' });
+
+    await prisma.accessToken.updateMany({
+      where: { tokenHash: hashToken(token), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return reply.code(204).send();
+  });
 
   app.get('/v1/users/:userId/state', async (request, reply) => {
     const params = request.params as { userId?: string };
@@ -13,6 +95,9 @@ export function registerRoutes(app: FastifyInstance) {
     if (!userId) {
       return reply.code(400).send({ message: 'userId is required' });
     }
+    const authenticatedUserId = await requireUserId(request, reply);
+    if (!authenticatedUserId) return;
+    if (authenticatedUserId !== userId) return reply.code(403).send({ message: 'Forbidden' });
 
     const user = await prisma.remoteUser.findUnique({
       where: { id: userId },
@@ -33,7 +118,7 @@ export function registerRoutes(app: FastifyInstance) {
           name: user.name,
           email: user.email ?? undefined,
           picture: user.picture ?? undefined,
-          provider: user.provider === 'google' ? 'google' : 'local',
+          provider: 'local',
           focusGoal: user.focusGoal ?? undefined,
           accentColor: user.accentColor ?? undefined,
           notificationsEnabled: user.notificationsOn,
@@ -74,6 +159,18 @@ export function registerRoutes(app: FastifyInstance) {
 
     if (!userId) {
       return reply.code(400).send({ message: 'userId is required' });
+    }
+    const authenticatedUserId = await requireUserId(request, reply);
+    if (!authenticatedUserId) return;
+    if (authenticatedUserId !== userId) return reply.code(403).send({ message: 'Forbidden' });
+
+    const expectedSyncAt = request.headers['if-unmodified-since'];
+    if (typeof expectedSyncAt === 'string') {
+      const existing = await prisma.remoteUser.findUnique({ where: { id: userId }, select: { lastSyncedAt: true } });
+      const expectedDate = new Date(expectedSyncAt);
+      if (existing?.lastSyncedAt && !Number.isNaN(expectedDate.getTime()) && existing.lastSyncedAt.getTime() > expectedDate.getTime()) {
+        return reply.code(409).send({ message: 'Remote state changed on another device. Restore it before syncing again.' });
+      }
     }
 
     const parsed = syncRequestSchema.safeParse(request.body);

@@ -86,7 +86,7 @@ export function normalizeUser(user: unknown): UserProfile | null {
       name,
       email: String(source.email ?? '').trim() || undefined,
       picture: String(source.picture ?? '').trim() || undefined,
-      provider: source.provider === 'google' ? 'google' : 'local',
+      provider: 'local',
       focusGoal: String(source.focusGoal ?? '').trim() || undefined,
       accentColor: String(source.accentColor ?? '').trim() || undefined,
       notificationsEnabled: false,

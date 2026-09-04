@@ -1,8 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 import ProgressBar from '../components/ProgressBar';
 import Screen from '../components/Screen';
 import StatCard from '../components/StatCard';
+import TestAdBanner from '../components/TestAdBanner';
 import { useAppState } from '../context/AppStateContext';
 import { useAppQuery } from '../context/useAppQuery';
 import { colors, radius, spacing } from '../theme';
@@ -46,6 +48,7 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.card}>
+        <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Últimos 7 dias</Text>
           <Text style={styles.cardHelper}>Concluídos sobre previstos</Text>
@@ -64,6 +67,7 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.card}>
+        <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Resumo diário</Text>
           <Text style={styles.cardHelper}>Hoje</Text>
@@ -73,6 +77,8 @@ export default function DashboardScreen() {
           {metrics.completedToday} hábitos concluídos de {metrics.dueToday} previstos hoje.
         </Text>
       </View>
+
+      <TestAdBanner />
     </Screen>
   );
 }
@@ -104,6 +110,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   card: {
+    overflow: 'hidden',
     backgroundColor: colors.surfaceGlass,
     borderColor: colors.borderGlass,
     borderWidth: 1,

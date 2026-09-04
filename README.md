@@ -6,8 +6,7 @@ O **Focus 2.0** e uma aplicacao mobile para acompanhamento de habitos, rotina e 
 
 Em termos funcionais, a aplicacao permite:
 
-- autenticacao local por nome;
-- autenticacao com Google no ambiente web;
+- autenticacao local com usuario e senha;
 - cadastro, edicao, ativacao, desativacao e exclusao de habitos;
 - registro de check-ins diarios com valor numerico e observacoes;
 - visualizacao de hoje, dashboard, historico e perfil;
@@ -33,7 +32,6 @@ Assim, o uso cotidiano permanece funcional mesmo sem internet, ao passo que a AP
 - React Navigation
 - expo-sqlite
 - expo-network
-- expo-auth-session
 
 ### Back end
 
@@ -216,7 +214,7 @@ pnpm web
 - `src/storage/SqliteStoreRepository.ts`: persistencia local com `SQLite`
 - `src/sync/syncService.ts`: servicos de sincronizacao remota
 - `src/navigation/AppNavigator.tsx`: navegacao principal
-- `api/src/routes.ts`: rotas da API de sincronizacao
+- `api/src/routes.ts`: rotas de autenticacao e sincronizacao
 - `api/prisma/schema.prisma`: esquema do banco remoto
 - `scripts/dev.js`: orquestracao do ambiente de desenvolvimento
 

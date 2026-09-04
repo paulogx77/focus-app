@@ -4,7 +4,7 @@ export const userProfileSchema = z.object({
   name: z.string().trim().min(1),
   email: z.string().trim().email().optional(),
   picture: z.string().trim().url().optional(),
-  provider: z.enum(['google', 'local']).optional(),
+  provider: z.literal('local').optional(),
   focusGoal: z.string().trim().optional(),
   accentColor: z.string().trim().optional(),
   notificationsEnabled: z.boolean().optional().default(false),
@@ -45,6 +45,15 @@ export const syncStateSchema = z.object({
 
 export const syncRequestSchema = z.object({
   state: syncStateSchema,
+});
+
+export const credentialsSchema = z.object({
+  username: z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{3,32}$/),
+  password: z.string().min(8).max(128),
+});
+
+export const registerSchema = credentialsSchema.extend({
+  name: z.string().trim().min(1).max(100),
 });
 
 export type SyncRequest = z.infer<typeof syncRequestSchema>;

@@ -274,10 +274,10 @@ Considere o seguinte cenario:
 {
   "state": {
     "user": {
-      "syncId": "google:123456",
+      "syncId": "f0c3a3d0-0000-4000-8000-000000000000",
       "name": "Paulo Silva",
       "email": "paulo@email.com",
-      "provider": "google",
+      "provider": "local",
       "focusGoal": "Ler diariamente",
       "accentColor": "#7C3AED",
       "notificationsEnabled": false,
@@ -319,7 +319,7 @@ Considere o seguinte cenario:
 
 ```json
 {
-  "userId": "google:123456",
+  "userId": "f0c3a3d0-0000-4000-8000-000000000000",
   "habitsCount": 1,
   "checkInsCount": 1,
   "syncedAt": "2026-05-29T21:15:00.000Z"
@@ -330,12 +330,9 @@ Considere o seguinte cenario:
 
 O sistema admite duas formas de entrada:
 
-- autenticacao local por nome;
-- autenticacao Google no ambiente web.
+- autenticacao local com usuario e senha.
 
-Do ponto de vista de sincronizacao entre dispositivos, o identificador mais robusto e o **identificador estavel do usuario**. No caso do login Google, esse identificador e derivado do `sub` retornado pelo provedor e passa a compor o `syncId`.
-
-Isso significa que a recuperacao remota entre dispositivos e mais confiavel quando o usuario utiliza um login com identidade persistente. O login local por nome e suficiente para uso individual no aparelho, mas nao possui o mesmo grau de confiabilidade para migracao entre dispositivos.
+O login local cria uma conta com identificador interno estavel e senha. O token de sessao do dispositivo autentica cada operacao de sincronizacao, permitindo restauracao segura em outro dispositivo.
 
 ## 16. Como Rodar O Projeto
 
@@ -411,7 +408,7 @@ Esses comandos conferem, respectivamente, a integridade da tipagem do app e a co
 Na versao atual, algumas limitacoes devem ser reconhecidas:
 
 - a sincronizacao e baseada em snapshot completo, e nao em eventos incrementais;
-- o login Google ainda nao esta plenamente habilitado no fluxo nativo do app;
+- a senha nao possui recuperacao nesta versao;
 - a recuperacao remota depende de um identificador estavel para ser plenamente confiavel;
 - o modo `tunnel` pode depender de configuracoes adicionais do Expo no ambiente local.
 

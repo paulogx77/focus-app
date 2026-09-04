@@ -132,7 +132,7 @@ Exemplo de resposta:
 
 ```json
 {
-  "userId": "google:123456",
+  "userId": "f0c3a3d0-0000-4000-8000-000000000000",
   "habitsCount": 1,
   "checkInsCount": 1,
   "syncedAt": "2026-05-29T21:15:00.000Z"

@@ -1,7 +1,9 @@
 import { SectionList, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 import Screen from '../components/Screen';
+import TestAdBanner from '../components/TestAdBanner';
 import { useAppState } from '../context/AppStateContext';
 import { useAppQuery } from '../context/useAppQuery';
 import { colors, radius, spacing } from '../theme';
@@ -43,6 +45,7 @@ export default function HistoryScreen() {
           )}
           renderItem={({ item }) => (
             <View style={styles.itemCard}>
+              <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
               <View style={styles.itemLeft}>
                 <Text style={styles.itemName}>{item.habit?.name ?? item.habitName ?? 'Hábito removido'}</Text>
                 <Text style={styles.itemMeta}>
@@ -55,6 +58,8 @@ export default function HistoryScreen() {
           )}
         />
       )}
+
+      <TestAdBanner />
     </Screen>
   );
 }
@@ -131,6 +136,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   itemCard: {
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

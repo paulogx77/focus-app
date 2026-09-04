@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import ProgressBar from './ProgressBar';
@@ -34,6 +35,7 @@ export default function HabitCard({ habit, checked = false, onPress, onLongPress
         !dueToday && styles.disabled,
       ]}
     >
+      <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={[styles.glow, { backgroundColor: `${habit.color}26` }]} />
       <View style={[styles.iconWrap, { backgroundColor: `${habit.color}20` }]}> 
         <MaterialCommunityIcons name={habit.icon as never} size={22} color={habit.color} />

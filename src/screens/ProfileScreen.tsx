@@ -21,7 +21,7 @@ const VISUAL_PREFERENCES = [
 ] as const;
 
 export default function ProfileScreen() {
-  const { user, syncNow, syncStatus, updateProfile, signOut } = useAppState();
+  const { habits, user, syncNow, restoreRemoteState, syncStatus, updateProfile, signOut, loadDemoData } = useAppState();
 
   const [name, setName] = useState(user?.name ?? '');
   const [focusGoal, setFocusGoal] = useState(user?.focusGoal ?? '');
@@ -74,6 +74,10 @@ export default function ProfileScreen() {
       return 'Sem internet no momento. O app continua salvando offline e envia quando a conexao voltar.';
     }
 
+    if (syncStatus.hasConflict) {
+      return 'Conflito detectado: dados foram alterados em outro dispositivo. Restaure a versao remota para continuar.';
+    }
+
     if (syncStatus.lastSyncError) {
       return `Falha na ultima sincronizacao: ${syncStatus.lastSyncError}`;
     }
@@ -89,6 +93,20 @@ export default function ProfileScreen() {
     return 'Nenhuma sincronizacao remota foi feita ainda.';
   }
 
+  function handleRestoreRemoteState() {
+    Alert.alert('Restaurar backup remoto?', 'Isso substitui dados locais pela ultima versao sincronizada.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Restaurar', style: 'destructive', onPress: () => void restoreRemoteState() },
+    ]);
+  }
+
+  async function handleLoadDemoData() {
+    const previousCount = habits.length;
+    const nextState = await loadDemoData();
+    const addedCount = nextState.habits.length - previousCount;
+    Alert.alert(addedCount ? 'Dados de demonstracao adicionados' : 'Dados de demonstracao ja carregados', addedCount ? `${addedCount} habitos e check-ins da ultima semana foram inseridos.` : 'Nenhum dado existente foi alterado.');
+  }
+
   return (
     <Screen scroll>
       <View style={styles.header}>
@@ -101,7 +119,7 @@ export default function ProfileScreen() {
         <View style={[styles.banner, { borderColor: accentColor + '66', backgroundColor: accentColor + '14' }]}>
           <View>
             <Text style={styles.bannerKicker}>Conta ativa</Text>
-            <Text style={styles.bannerTitle}>{user?.provider === 'google' ? 'Google' : 'Local'}</Text>
+            <Text style={styles.bannerTitle}>Local</Text>
           </View>
           <View style={styles.bannerMeta}>
             <Text style={styles.bannerMetaLabel}>Email</Text>
@@ -117,7 +135,7 @@ export default function ProfileScreen() {
               <Text style={[styles.avatarLetters, { color: accentColor }]}>{initials}</Text>
             </View>
           )}
-          <View style={[styles.statusDot, { backgroundColor: user?.provider === 'google' ? colors.success : colors.warning }]} />
+          <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
         </View>
 
         <View style={styles.field}>
@@ -162,6 +180,20 @@ export default function ProfileScreen() {
           <Pressable onPress={() => void syncNow()} disabled={!syncStatus.syncEnabled || syncStatus.isSyncing || !syncStatus.isOnline} style={[styles.button, styles.secondaryButton, styles.syncButton, (!syncStatus.syncEnabled || syncStatus.isSyncing || !syncStatus.isOnline) && styles.buttonDisabled]}>
             <MaterialCommunityIcons name="cloud-sync-outline" size={18} color={colors.textPrimary} />
             <Text style={styles.secondaryButtonText}>{syncStatus.isSyncing ? 'Sincronizando...' : 'Sincronizar agora'}</Text>
+          </Pressable>
+          {syncStatus.hasConflict ? (
+            <Pressable onPress={handleRestoreRemoteState} disabled={syncStatus.isSyncing || !syncStatus.isOnline} style={[styles.button, styles.secondaryButton, styles.syncButton, (syncStatus.isSyncing || !syncStatus.isOnline) && styles.buttonDisabled]}>
+              <MaterialCommunityIcons name="cloud-download-outline" size={18} color={colors.textPrimary} />
+              <Text style={styles.secondaryButtonText}>Restaurar backup remoto</Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Demonstracao</Text>
+          <Pressable onPress={() => void handleLoadDemoData()} style={[styles.button, styles.secondaryButton]}>
+            <MaterialCommunityIcons name="flask-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.secondaryButtonText}>Adicionar dados de exemplo</Text>
           </Pressable>
         </View>
 

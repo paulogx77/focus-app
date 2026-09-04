@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { BlurView } from 'expo-blur';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing } from '../theme';
@@ -13,6 +14,7 @@ type StatCardProps = {
 export default function StatCard({ label, value, accent = colors.primary, helper }: StatCardProps) {
   return (
     <View style={styles.card}>
+      <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={[styles.glow, { backgroundColor: `${accent}20` }]} />
       <View style={[styles.accent, { backgroundColor: accent }]} />
       <Text style={styles.value}>{value}</Text>
